@@ -81,6 +81,7 @@ details summary{cursor:pointer;color:var(--accent);font-weight:500}
   </div>
 </header>
 <nav role="tablist" id="tabs"></nav>
+<div id="audit" style="margin:0 16px"></div>
 <main id="main"></main>
 </div>
 
@@ -458,4 +459,12 @@ async function applyFeed(){try{const r=await fetch('data/feed.json?'+Date.now(),
  state.asof=todayStr();persist();renderAll();
  $('#savest').textContent='feed '+f.generated.slice(0,16).replace('T',' ')+' UTC · konsensus = proxy (rata-rata rilis sebelumnya)'}catch(e){}}
 applyFeed();
+
+/* ---------- panel audit (data/audit.json) ---------- */
+async function showAudit(){try{const r=await fetch('data/audit.json?'+Date.now(),{cache:'no-store'});if(!r.ok)return;const a=await r.json();if(!a||!a.generated)return;
+ const c=a.counts||{},bad=(c.fail||0)>0,w=(c.warn||0)>0;const col=bad?'#b3261e':w?'var(--warn)':'#1e7a46';
+ const ic={fail:'GAGAL',warn:'CEK',ok:'OK'};
+ const rows=(a.checks||[]).filter(x=>x.level!=='ok').concat((a.checks||[]).filter(x=>x.level==='ok')).map(x=>`<div style="display:flex;gap:8px;padding:5px 0;border-top:1px solid var(--line,#8884)"><b style="min-width:46px;color:${x.level==='fail'?'#b3261e':x.level==='warn'?'#9a6700':'#1e7a46'}">${ic[x.level]}</b><span style="flex:1"><i>${esc(x.grp)}</i> ${esc(x.msg)}${x.link?` <a href="${esc(x.link)}" target="_blank" rel="noopener">sumber</a>`:''}</span></div>`).join('');
+ $('#audit').innerHTML=`<details style="border:1px solid ${col};border-radius:6px;padding:8px 12px;margin-top:10px"><summary style="cursor:pointer;font-weight:600;color:${col}">Audit data: ${c.ok||0} OK · ${c.warn||0} cek · ${c.fail||0} gagal <span style="font-weight:400;opacity:.7">(${esc(a.generated.slice(0,16).replace('T',' '))} UTC)</span></summary><div style="font-size:.9em;margin-top:6px">${rows}</div></details>`}catch(e){}}
+showAudit();
 </script>

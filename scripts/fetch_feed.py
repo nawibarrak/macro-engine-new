@@ -17,28 +17,58 @@ def fred(series, **kw):
         except ValueError: pass          # nilai "." = kosong
     return out
 
-# ind: (series, mode, skala, n_proxy). mode: pct = m/m %, diff = selisih, lvl = level
+# ind: (series, mode, skala, n_proxy, batas_wajar). mode: pct = m/m %, diff = selisih, lvl = level
 IND = {
- "cpi_core": ("CPILFESL", "pct", 1, 3), "cpi": ("CPIAUCSL", "pct", 1, 3),
- "pce_core": ("PCEPILFE", "pct", 1, 3), "ppi": ("PPIFIS", "pct", 1, 3),
- "ahe": ("CES0500000003", "pct", 1, 3), "nfp": ("PAYEMS", "diff", 1, 3),
- "unemp": ("UNRATE", "lvl", 1, 3), "claims": ("ICSA", "lvl", 1e-3, 4),
- "jolts": ("JTSJOL", "lvl", 1e-3, 3), "retail": ("RSAFS", "pct", 1, 3),
- "ip": ("INDPRO", "pct", 1, 3), "gdp": ("A191RL1Q225SBEA", "lvl", 1, 3)}
+ "cpi_core": ("CPILFESL", "pct", 1, 3, 1.0), "cpi": ("CPIAUCSL", "pct", 1, 3, 1.5),
+ "pce_core": ("PCEPILFE", "pct", 1, 3, 1.0), "ppi": ("PPIFIS", "pct", 1, 3, 3.0),
+ "ahe": ("CES0500000003", "pct", 1, 3, 1.5), "nfp": ("PAYEMS", "diff", 1, 3, 1500),
+ "unemp": ("UNRATE", "lvl", 1, 3, 15), "claims": ("ICSA", "lvl", 1e-3, 4, 1500),
+ "jolts": ("JTSJOL", "lvl", 1e-3, 3, 20), "retail": ("RSAFS", "pct", 1, 3, 5.0),
+ "ip": ("INDPRO", "pct", 1, 3, 3.0), "gdp": ("A191RL1Q225SBEA", "lvl", 1, 3, 15)}
+
+def vintages(sid, start):
+    """Semua versi nilai (ALFRED): obs -> [(rs, re, nilai)], untuk 'nilai yang diketahui pada hari D'."""
+    p = dict(series_id=sid, api_key=KEY, file_type="json", observation_start=start,
+             realtime_start="2000-01-01", realtime_end="9999-12-31", limit=100000)
+    r = requests.get("https://api.stlouisfed.org/fred/series/observations", params=p, timeout=60)
+    r.raise_for_status()
+    out = {}
+    for o in r.json()["observations"]:
+        try: v = float(o["value"])
+        except ValueError: continue
+        out.setdefault(o["date"], []).append((o["realtime_start"], o["realtime_end"], v))
+    return out
+
+def known(vs, obs, day):
+    for rs, re_, v in vs.get(obs, []):
+        if rs <= day <= re_: return v
+    return None
+
+def consensus_file():
+    f = os.path.join(os.path.dirname(__file__), "..", "data", "consensus.csv")
+    m = {}
+    if os.path.exists(f):
+        for ln in open(f):
+            c = [x.strip() for x in ln.split(",")]
+            if len(c) >= 3 and c[0][:2] == "20":
+                try: m[(c[0], c[1])] = float(c[2])
+                except ValueError: pass
+    return m
 
 def releases():
-    res = []
+    res = []; cfile = consensus_file()
     start = (TODAY - dt.timedelta(days=500)).isoformat()
-    for ind, (sid, mode, sc, n) in IND.items():
+    for ind, (sid, mode, sc, n, bound) in IND.items():
         try:
-            first = fred(sid, observation_start=start, realtime_start="2000-01-01",
-                         realtime_end="9999-12-31", output_type=4)
-            latest = dict((d, v) for d, v, _ in fred(sid, observation_start=start))
-            rows = []
-            for i, (d, v, rs) in enumerate(first):
+            vs = vintages(sid, start)
+            obs = sorted(vs)
+            rows = []; skipped = 0
+            for i, d in enumerate(obs):
                 if i == 0: continue
-                pd_ = first[i - 1][0]
-                prev = latest.get(pd_)
+                R = min(x[0] for x in vs[d])            # tanggal rilis pertama
+                v = known(vs, d, R); pd_ = obs[i - 1]
+                prev = known(vs, pd_, R)                # nilai periode lalu yang diketahui saat rilis
+                if v is None: continue
                 if mode == "pct":
                     if not prev or (dt.date.fromisoformat(d) - dt.date.fromisoformat(pd_)).days > 100: continue
                     act = (v / prev - 1) * 100
@@ -46,13 +76,16 @@ def releases():
                     if prev is None: continue
                     act = v - prev
                 else: act = v
-                rows.append((rs, round(act * sc, 3)))
-            for i, (rs, act) in enumerate(rows):
-                hist = [a for _, a in rows[max(0, i - n):i]]
+                act = round(act * sc, 3)
+                if abs(act) > bound: skipped += 1; continue   # tidak masuk akal -> buang
+                rows.append((R, act, d))
+            for i, (rs, act, od) in enumerate(rows):
+                hist = [a for _, a, _ in rows[max(0, i - n):i]]
                 cons = round(sum(hist) / len(hist), 3) if len(hist) >= 2 else None
+                cons = cfile.get((rs, ind), cons)
                 if (TODAY - dt.date.fromisoformat(rs)).days <= 150:
-                    res.append(dict(date=rs, ind=ind, act=act, cons=cons))
-            log.append(f"ok {ind}")
+                    res.append(dict(date=rs, ind=ind, act=act, cons=cons, obs=od, src="file" if (rs, ind) in cfile else "proxy"))
+            log.append(f"ok {ind}" + (f" (buang {skipped} nilai tak wajar)" if skipped else ""))
         except Exception as e:
             log.append(f"GAGAL {ind}: {e}")
     return res
