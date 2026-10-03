@@ -1,0 +1,461 @@
+<title>Macro Engine Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: sticky header + tab strip, one working view per tab, results always below the inputs */
+:root{
+  --bg:#EDF1F4;--panel:#FFFFFF;--panel2:#E4EBF0;--ink:#12232F;--mute:#566B79;--line:#C9D5DD;
+  --accent:#1D5D8A;--accent-soft:#D8E8F4;--pos:#17795A;--neg:#B13E2C;--warn:#8F6208;--warn-soft:#F4E7C8;--neg-soft:#F6DAD4;--pos-soft:#D3EBE1;
+  --f-ui:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;--f-num:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0B1620;--panel:#132230;--panel2:#1A2D3D;--ink:#DDE7EE;--mute:#8CA1AF;--line:#274156;
+  --accent:#6DB3E4;--accent-soft:#1B3A52;--pos:#4CC79B;--neg:#F28B76;--warn:#E3B552;--warn-soft:#3A3014;--neg-soft:#3F211C;--pos-soft:#14382E;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0B1620;--panel:#132230;--panel2:#1A2D3D;--ink:#DDE7EE;--mute:#8CA1AF;--line:#274156;
+  --accent:#6DB3E4;--accent-soft:#1B3A52;--pos:#4CC79B;--neg:#F28B76;--warn:#E3B552;--warn-soft:#3A3014;--neg-soft:#3F211C;--pos-soft:#14382E;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:14px;line-height:1.5;padding-inline:16px;padding-block:0 48px}
+.wrap{max-width:1080px;margin-inline:auto}
+header{padding-block:18px 10px;display:flex;flex-wrap:wrap;gap:10px 20px;align-items:flex-end;justify-content:space-between}
+h1{font-size:20px;font-weight:600;margin:0;letter-spacing:-.01em;text-wrap:balance}
+header p{margin:2px 0 0;color:var(--mute);font-size:13px}
+.meta{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.pill{font-family:var(--f-num);font-size:11px;padding:3px 8px;border-radius:99px;border:1px solid var(--line);color:var(--mute);background:var(--panel)}
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);overflow-x:auto;display:flex;gap:2px;margin-inline:-16px;padding-inline:16px}
+nav button{font:inherit;font-weight:500;color:var(--mute);background:none;border:0;border-bottom:2px solid transparent;padding:10px 12px;cursor:pointer;white-space:nowrap}
+nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+main{display:flex;flex-direction:column;gap:14px;padding-top:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px;min-width:0}
+.card h2{margin:0 0 10px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--mute)}
+.card h3{margin:0 0 4px;font-size:14px;font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:12px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.fld{display:flex;flex-direction:column;gap:3px;min-width:0}
+.fld label,.lbl{font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.06em}
+.in,select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:6px 8px;min-width:0;width:100%}
+.in{font-family:var(--f-num)}
+.in.s{width:68px;padding:4px 6px;font-size:12px;text-align:right}
+textarea{font-family:var(--f-num);font-size:12px;min-height:84px}
+.btn{font:inherit;font-weight:500;border:1px solid var(--accent);background:var(--accent);color:var(--panel);border-radius:4px;padding:7px 12px;cursor:pointer}
+.btn.ghost{background:none;color:var(--accent)}
+.btn.sm{padding:3px 8px;font-size:12px}
+.btn.del{border-color:var(--line);color:var(--mute);background:none}
+.note{color:var(--mute);font-size:12px;margin:6px 0 0}
+.banner{padding:10px 14px;border-radius:6px;border:1px solid var(--warn);background:var(--warn-soft);color:var(--ink);display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);font-weight:500;text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+td.n,th.n{text-align:right;font-family:var(--f-num);white-space:nowrap}
+tr.clk{cursor:pointer}tr.clk:hover td{background:var(--panel2)}
+.bar{position:relative;display:block;height:8px;background:var(--panel2);border-radius:2px;min-width:90px}
+.bar:before{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--line)}
+.bar i{position:absolute;top:0;bottom:0;border-radius:1px}
+.bar i.p{background:var(--pos)}.bar i.n{background:var(--neg)}
+.tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:99px;font-weight:500;white-space:nowrap}
+.tag.p{background:var(--pos-soft);color:var(--pos)}.tag.n{background:var(--neg-soft);color:var(--neg)}.tag.z{background:var(--panel2);color:var(--mute)}.tag.w{background:var(--warn-soft);color:var(--warn)}
+.big{font-family:var(--f-num);font-size:26px;font-weight:500;line-height:1.1}
+.pos{color:var(--pos)}.neg{color:var(--neg)}.mute{color:var(--mute)}
+.mode{border-left:4px solid var(--pos)}.mode.waspada{border-left-color:var(--warn)}.mode.krisis{border-left-color:var(--neg)}
+ul.clean{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:5px}
+.chk{display:flex;gap:8px;align-items:baseline}.chk b{font-family:var(--f-num);font-weight:500}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--line);display:inline-block;flex:none}.dot.on{background:var(--neg)}
+.bk{display:grid;grid-template-columns:90px 1fr 56px;gap:8px;align-items:center;font-size:12px}
+details summary{cursor:pointer;color:var(--accent);font-weight:500}
+.spark{width:100%;max-width:320px;height:54px;display:block}
+.spark .l{fill:none;stroke:var(--accent);stroke-width:1.5}.spark .g{fill:none;stroke:var(--line);stroke-width:1;stroke-dasharray:3 3}.spark .d{fill:var(--accent);stroke:none}
+.pb{display:flex;height:10px;border-radius:2px;overflow:hidden;min-width:120px;background:var(--panel2)}.pb i{display:block;height:100%}.pb i.d{background:var(--neg)}.pb i.f{background:var(--line)}.pb i.u{background:var(--pos)}
+.dim{opacity:.55}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:13px}.kv dt{color:var(--mute)}.kv dd{margin:0;font-family:var(--f-num);text-align:right}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+
+<div class="wrap" id="app">
+<header>
+  <div><h1>Macro Engine Desk</h1><p>Layer fundamental: rilis data, bank sentral, COT, shock, dan dampak antar aset.</p></div>
+  <div class="meta">
+    <div class="fld"><label for="asof">Tanggal analisis</label><input class="in" id="asof" type="date" data-b="asof" data-t="s" data-full="1"></div>
+    <span class="pill" id="savest">memuat</span>
+  </div>
+</header>
+<nav role="tablist" id="tabs"></nav>
+<main id="main"></main>
+</div>
+
+<script>
+'use strict';
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const num=v=>{if(v===''||v==null)return null;const x=parseFloat(String(v).replace(',','.'));return isFinite(x)?x:null};
+const sg=(x,d=2)=>x==null||!isFinite(x)?'–':(x>0?'+':x<0?'−':'')+Math.abs(x).toFixed(d);
+const fx=(x,d=2)=>x==null||!isFinite(x)?'–':x.toFixed(d);
+const todayStr=()=>{const d=new Date();return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)};
+const addDays=(s,n)=>{const d=new Date(s+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)};
+const diffDays=(a,b)=>Math.round((new Date(a+'T00:00:00Z')-new Date(b+'T00:00:00Z'))/864e5);
+const dow=s=>new Date(s+'T00:00:00Z').getUTCDay();
+const validDate=s=>/^\d{4}-\d{2}-\d{2}$/.test(s||'')&&!isNaN(new Date(s+'T00:00:00Z'));
+
+/* ---------- static definitions ---------- */
+const IND=[
+ {id:'cpi_core',n:'CPI inti (m/m)',c:'I',s:1,u:'%',sd:0.10},
+ {id:'cpi',n:'CPI headline (m/m)',c:'I',s:1,u:'%',sd:0.12},
+ {id:'pce_core',n:'PCE inti (m/m)',c:'I',s:1,u:'%',sd:0.08},
+ {id:'ppi',n:'PPI (m/m)',c:'I',s:1,u:'%',sd:0.25},
+ {id:'ahe',n:'Upah per jam (m/m)',c:'I',s:1,u:'%',sd:0.12},
+ {id:'nfp',n:'NFP',c:'G',s:1,u:'ribu',sd:75},
+ {id:'unemp',n:'Tingkat pengangguran',c:'G',s:-1,u:'%',sd:0.12},
+ {id:'claims',n:'Klaim awal pengangguran',c:'G',s:-1,u:'ribu',sd:15},
+ {id:'jolts',n:'JOLTS lowongan',c:'G',s:1,u:'juta',sd:0.35},
+ {id:'ism_m',n:'ISM manufaktur',c:'G',s:1,u:'poin',sd:1.5},
+ {id:'ism_s',n:'ISM jasa',c:'G',s:1,u:'poin',sd:1.8},
+ {id:'retail',n:'Penjualan ritel (m/m)',c:'G',s:1,u:'%',sd:0.5},
+ {id:'ip',n:'Produksi industri (m/m)',c:'G',s:1,u:'%',sd:0.3},
+ {id:'gdp',n:'GDP (q/q anualisasi)',c:'G',s:1,u:'%',sd:0.7},
+ {id:'cn_pmi',n:'PMI manufaktur China',c:'G',s:1,u:'poin',sd:0.7},
+ {id:'eu_pmi',n:'PMI komposit Eropa',c:'G',s:1,u:'poin',sd:1.2}];
+const IND_BY=Object.fromEntries(IND.map(d=>[d.id,d]));
+const CBS=[['FED','Federal Reserve'],['ECB','ECB'],['BOE','Bank of England'],['BOJ','Bank of Japan'],['RBA','RBA'],['BI','Bank Indonesia']];
+const COTS=[['GOLD','Emas'],['CRUDE','Minyak WTI'],['COPPER','Tembaga'],['EUR','EUR'],['GBP','GBP'],['JPY','JPY'],['AUD','AUD'],['SPX','S&P 500 E-mini'],['NDX','Nasdaq 100 E-mini'],['BTC','Bitcoin CME']];
+const ASSETS=[
+ {k:'XAU',n:'XAUUSD (emas)',cot:'GOLD'},{k:'WTI',n:'WTI minyak',cot:'CRUDE'},{k:'CU',n:'Tembaga',cot:'COPPER'},
+ {k:'SPX',n:'S&P 500',cot:'SPX'},{k:'NDX',n:'Nasdaq 100',cot:'NDX'},{k:'BTC',n:'Bitcoin',cot:'BTC'},
+ {k:'EEM',n:'EEM (emerging)'},{k:'IHSG',n:'IHSG'},
+ {k:'EURUSD',n:'EURUSD',cot:'EUR'},{k:'GBPUSD',n:'GBPUSD',cot:'GBP'},{k:'USDJPY',n:'USDJPY',cot:'JPY',inv:true},
+ {k:'AUDUSD',n:'AUDUSD',cot:'AUD'},{k:'USDIDR',n:'USDIDR'},{k:'US02Y',n:'Yield US 2Y'},
+ {k:'DXY',n:'DXY (hub USD)',hub:'usd'},{k:'RY',n:'Real yield 10Y (hub)',hub:'ry'}];
+const FACT=['G','I','P','L','R','RY','USD'];
+const BETA={ /* g,i,p,l,r,ry,usd — prior ekonomi awal, bukan hasil estimasi */
+ XAU:[0,.3,0,.3,.4,-.7,-.5],WTI:[.5,.4,0,.1,-.4,0,-.3],CU:[.7,0,0,.2,-.5,0,-.4],
+ SPX:[.4,-.1,-.1,.4,-.7,-.4,-.2],NDX:[.3,-.1,-.1,.5,-.8,-.6,-.2],BTC:[.1,0,0,.7,-.7,-.4,-.4],
+ EEM:[.3,0,0,.4,-.6,-.3,-.5],IHSG:[.3,0,0,.3,-.6,-.3,-.4],
+ EURUSD:[0,0,0,0,-.2,0,-.9],GBPUSD:[.1,0,0,0,-.3,0,-.8],USDJPY:[.1,0,0,0,-.5,.6,.4],
+ AUDUSD:[.4,0,0,0,-.5,-.1,-.6],USDIDR:[-.1,0,0,-.2,.6,.2,.7],US02Y:[.3,.3,.9,0,-.4,.3,0]};
+const QUAD={GOLD:'Goldilocks (growth naik, inflasi turun)',OVER:'Reflasi / overheating (growth naik, inflasi naik)',STAG:'Stagflasi (growth turun, inflasi naik)',SLOW:'Perlambatan / deflasi (growth turun, inflasi turun)'};
+const PH={ /* tabel override saat mode krisis, skor dalam satuan sigma */
+ 1:{XAU:-.5,WTI:-1.5,CU:-1.5,SPX:-2,NDX:-2,BTC:-2,EEM:-2,IHSG:-2,EURUSD:-1,GBPUSD:-1.2,USDJPY:-1.2,AUDUSD:-1.5,USDIDR:1.5,US02Y:-1,DXY:1.8,RY:-.5},
+ 2:{XAU:1.2,WTI:.3,CU:.3,SPX:.8,NDX:1,BTC:1,EEM:.7,IHSG:.5,EURUSD:.8,GBPUSD:.8,USDJPY:-.3,AUDUSD:.6,USDIDR:-.5,US02Y:-1.5,DXY:-1.2,RY:-1.2},
+ 3:{XAU:1,WTI:1.2,CU:1.5,SPX:1.5,NDX:1.8,BTC:1.8,EEM:1.4,IHSG:1.2,EURUSD:.6,GBPUSD:.6,USDJPY:.6,AUDUSD:1.2,USDIDR:-.8,US02Y:.6,DXY:-.6,RY:.4}};
+const PHN={1:'Fase 1: panik, cash is king',2:'Fase 2: respons bank sentral',3:'Fase 3: pemulihan / reflasi'};
+const SCEN={
+ none:{n:'Tidak ada',t:'',v:{}},
+ energi:{n:'Perang / gangguan pasokan energi',t:'Modal ke energi, USD, emas. Keluar dari importir energi dan saham Eropa.',v:{WTI:1.5,XAU:.5,DXY:.5,EURUSD:-.6,SPX:-.5,NDX:-.4,EEM:-.4,USDIDR:.4,CU:-.2}},
+ bank:{n:'Krisis perbankan',t:'Deposito ke bank besar dan money market, yield pendek jatuh, emas naik.',v:{US02Y:-1.5,XAU:1,SPX:-.5,NDX:.3,DXY:-.2,RY:-.7}},
+ tarif:{n:'Perang tarif / dagang',t:'Pola safe haven klasik rusak: USD melemah, emas melonjak, term premium naik.',v:{DXY:-.8,XAU:1.2,SPX:-1,NDX:-1,CU:-.8,EEM:-.8,AUDUSD:-.6,USDIDR:.5,RY:.3}},
+ carry:{n:'Carry unwind / intervensi JPY',t:'JPY menguat tajam, ekuitas global dan kripto turun, VIX melonjak singkat.',v:{USDJPY:-2,SPX:-1,NDX:-1,BTC:-1.2,AUDUSD:-1,XAU:.3,EEM:-.6}},
+ mideast:{n:'Geopolitik Timur Tengah',t:'Minyak, emas, USD naik. Bedakan gangguan fisik (tahan lama) dari headline (cepat memudar).',v:{WTI:1.2,XAU:.8,DXY:.4,SPX:-.4,EEM:-.3,USDIDR:.3}},
+ pandemi:{n:'Pandemi / shock permintaan',t:'Ekuitas ke cash dan Treasury, minyak dan tembaga anjlok akibat demand shock.',v:{WTI:-1.2,CU:-1,SPX:-1,NDX:-.5,XAU:.3,DXY:.5,US02Y:-1}}};
+
+/* ---------- state ---------- */
+const defModel=()=>{const beta={};for(const k in BETA)beta[k]=BETA[k].slice();
+ return{beta,hub:{ry:{P:.6,G:.3,I:.1,R:-.3,L:-.1},usd:{Pd:.4,RY:.3,R:.2,L:-.15,G:.1}},
+ mult:{GOLD:{ry:.6,usd:1},OVER:{ry:1.3,usd:1},STAG:{ry:1.5,usd:1},SLOW:{ry:.6,usd:1.1}}}};
+const defaults=()=>({v:1,asof:todayStr(),example:false,set:{hl:30,win:90,k:1},sigma:{},releases:[],cb:{},cot:{},
+ shock:{vix:null,vix3m:null,move:null,hy:null,hyp:null,scn:'none',int:1,ph:1},
+ liq:{w0:null,t0:null,r0:null,w1:null,t1:null,r1:null},prob:null,model:defModel()});
+function norm(s){const d=defaults();const o=Object.assign(d,s||{});
+ const f=defaults();o.set=Object.assign(f.set,(s&&s.set)||{});o.shock=Object.assign(f.shock,(s&&s.shock)||{});o.liq=Object.assign(f.liq,(s&&s.liq)||{});
+ const m=defModel(),sm=(s&&s.model)||{};for(const k in m.beta)if(sm.beta&&Array.isArray(sm.beta[k])&&sm.beta[k].length===7)m.beta[k]=sm.beta[k];
+ for(const g of['ry','usd'])Object.assign(m.hub[g],(sm.hub&&sm.hub[g])||{});for(const q in m.mult)Object.assign(m.mult[q],(sm.mult&&sm.mult[q])||{});
+ o.model=m;o.sigma=o.sigma||{};o.releases=Array.isArray(o.releases)?o.releases:[];o.cb=o.cb||{};o.cot=o.cot||{};
+ for(const[k]of CBS)o.cb[k]=Object.assign({rate:null,imp:null,infl:null,txt:0,dec:0},o.cb[k]||{});
+ for(const[k]of COTS){o.cot[k]=Object.assign({rows:[],min:null,max:null},o.cot[k]||{});if(!Array.isArray(o.cot[k].rows))o.cot[k].rows=[]}
+ o.asof=todayStr();return o}
+function makeExample(){const s=norm({});const t=s.asof;let id=1;
+ const R=(ago,ind,act,cons)=>s.releases.push({id:'x'+id++,date:addDays(t,-ago),ind,act,cons,prev:null,note:'contoh'});
+ R(3,'ism_s',51.5,51);R(5,'claims',232,225);R(9,'pce_core',.2,.2);R(18,'cpi_core',.3,.25);R(20,'retail',.4,.3);
+ R(29,'nfp',142,160);R(29,'unemp',4.4,4.3);R(29,'ahe',.4,.3);R(31,'ism_m',49.2,49.8);R(35,'gdp',3,2.8);
+ s.cb.FED={rate:4.0,imp:3.6,infl:2.9,txt:1,dec:0};s.cb.ECB={rate:2.0,imp:1.8,infl:2.3,txt:0,dec:0};s.cb.BOJ={rate:.5,imp:.9,infl:2.5,txt:1,dec:1};s.cb.BI={rate:4.75,imp:4.5,infl:2.1,txt:-1,dec:0};
+ let tu=t;while(dow(tu)!==2||addDays(tu,3)>t)tu=addDays(tu,-1);
+ for(let i=0;i<14;i++){const d=addDays(tu,-7*(13-i));
+  s.cot.GOLD.rows.push({d,net:Math.round(170000+i*5200+Math.sin(i)*12000),oi:520000});
+  s.cot.JPY.rows.push({d,net:Math.round(-40000+i*-3500+Math.cos(i)*9000),oi:260000})}
+ Object.assign(s.shock,{vix:19.5,vix3m:21.8,move:98,hy:3.4,hyp:3.3});
+ Object.assign(s.liq,{w0:6600,t0:850,r0:120,w1:6580,t1:820,r1:140});
+ s.example=true;return s}
+
+let state,dbDoc=null,saveT=null,saving=false;
+const ui={tab:'dash',open:null,msg:''};
+let draft={rel:{date:todayStr(),ind:'cpi_core',act:null,cons:null},cotKey:'GOLD',cot:{d:'',net:null,oi:null},csvRel:'',csvCot:'',imp:'',impProb:''};
+function lastTue(a){let d=a;while(dow(d)!==2||addDays(d,3)>a)d=addDays(d,-1);return d}
+
+/* ---------- model ---------- */
+function sigmaFor(st,id){const ov=st.sigma[id];if(ov!=null&&ov>0)return{v:ov,src:'manual'};
+ const xs=st.releases.filter(r=>r.ind===id&&r.cons!=null&&r.act!=null).map(r=>r.act-r.cons);
+ if(xs.length>=8){const m=xs.reduce((a,b)=>a+b,0)/xs.length;const v=Math.sqrt(xs.reduce((a,b)=>a+(b-m)**2,0)/(xs.length-1));if(v>0)return{v,src:'empiris n='+xs.length}}
+ return{v:IND_BY[id].sd,src:'awal'}}
+function indices(st){const acc={G:{n:0,d:0,c:0},I:{n:0,d:0,c:0}};const rows=[];
+ for(const r of st.releases){const d=IND_BY[r.ind];if(!d)continue;const age=diffDays(st.asof,r.date);const s=sigmaFor(st,r.ind);
+  const z=(r.cons==null||r.act==null)?null:d.s*(r.act-r.cons)/s.v;const inW=age>=0&&age<=st.set.win;const w=inW?Math.pow(.5,age/st.set.hl):0;
+  rows.push({...r,z,age,w,cat:d.c,sig:s});
+  if(z!=null&&inW){const o=acc[d.c];o.n+=w*clamp(z,-3,3);o.d+=w;o.c++}}
+ const f=o=>clamp(o.n/(o.d+st.set.k),-3,3);
+ return{G:f(acc.G),I:f(acc.I),nG:acc.G.c,nI:acc.I.c,rows}}
+function cbStance(c){const em=(c.rate!=null&&c.imp!=null)?clamp((c.imp-c.rate)/.25,-4,4):0;
+ const has=(c.rate!=null&&c.imp!=null)||!!c.txt||!!c.dec;
+ return{st:clamp(.35*em+.35*(c.txt||0)+.3*(c.dec||0),-3,3),em,has,real:(c.rate!=null&&c.infl!=null)?c.rate-c.infl:null}}
+function shockCalc(s){const ratio=(s.vix!=null&&s.vix3m)?s.vix/s.vix3m:null;const hyd=(s.hy!=null&&s.hyp!=null)?s.hy-s.hyp:null;
+ const t=[{k:'VIX di atas 30',on:s.vix!=null&&s.vix>30,v:s.vix!=null?fx(s.vix,1):'–'},
+  {k:'VIX / VIX3M di atas 1 (inverted)',on:ratio!=null&&ratio>1,v:ratio!=null?fx(ratio,2):'–'},
+  {k:'MOVE di atas 130',on:s.move!=null&&s.move>130,v:s.move!=null?fx(s.move,0):'–'},
+  {k:'HY OAS naik lebih dari 1,0 poin (20 hari)',on:hyd!=null&&hyd>1,v:hyd!=null?sg(hyd,2):'–'}];
+ const n=t.filter(x=>x.on).length;const cs=[];
+ if(s.vix!=null)cs.push((s.vix-18)/10);if(ratio!=null)cs.push((ratio-.9)/.15);if(s.move!=null)cs.push((s.move-90)/40);if(hyd!=null)cs.push(hyd/.5);
+ const R=cs.length?clamp(cs.map(c=>clamp(c,-.5,3)).reduce((a,b)=>a+b,0)/cs.length,0,3):0;
+ return{t,n,mode:n>=2?'KRISIS':n===1?'WASPADA':'NORMAL',R,ratio,hyd,have:cs.length}}
+function liqCalc(l){const ok=['w0','t0','r0','w1','t1','r1'].every(k=>l[k]!=null);
+ if(!ok)return{ok:false,L:0,now:null,prev:null,d:null};const now=l.w0-l.t0-l.r0,prev=l.w1-l.t1-l.r1;
+ return{ok:true,now,prev,d:now-prev,L:clamp((now-prev)/150,-2,2)}}
+function cotCalc(st,key){const c=st.cot[key];if(!c)return{n:0};
+ const rows=c.rows.filter(r=>r.oi>0&&validDate(r.d)&&addDays(r.d,3)<=st.asof).sort((a,b)=>a.d<b.d?-1:1);
+ const ser=rows.map(r=>r.net/r.oi*100);if(!ser.length)return{n:0};const last=ser[ser.length-1];let pct=null,src='';
+ if(c.min!=null&&c.max!=null&&c.max>c.min){pct=clamp((last-c.min)/(c.max-c.min),0,1);src='rentang manual'}
+ else if(ser.length>=10){pct=ser.filter(x=>x<=last).length/ser.length;src='peringkat riwayat, n='+ser.length}
+ return{n:ser.length,last,pct,src,ser,pos:rows[rows.length-1].d,rel:addDays(rows[rows.length-1].d,3)}}
+function run(st){
+ const ix=indices(st),G=ix.G,I=ix.I;
+ const cbs={};for(const[k]of CBS)cbs[k]=cbStance(st.cb[k]);
+ const P=cbs.FED.st;const oth=CBS.slice(1).map(([k])=>cbs[k]).filter(c=>c.has);
+ const Pd=P-(oth.length?oth.reduce((a,c)=>a+c.st,0)/oth.length:0);
+ const sh=shockCalc(st.shock),lq=liqCalc(st.liq),R=sh.R,L=lq.L;
+ const q=G>=0?(I>=0?'OVER':'GOLD'):(I>=0?'STAG':'SLOW');const m=st.model.mult[q],h=st.model.hub;
+ const RY=h.ry.P*P+h.ry.G*G+h.ry.I*I+h.ry.R*R+h.ry.L*L;
+ const USD=h.usd.Pd*Pd+h.usd.RY*RY+h.usd.R*R+h.usd.L*L+h.usd.G*G;
+ const crisis=sh.mode==='KRISIS',scn=SCEN[st.shock.scn]||SCEN.none,inten=st.shock.int==null?1:st.shock.int;
+ const cov=clamp((ix.nG+ix.nI)/8,0,1);
+ const out=ASSETS.map(a=>{let parts={},score;
+  if(crisis){const v=PH[st.shock.ph||1][a.k]||0;parts={'Tabel krisis':v}}
+  else if(a.hub==='ry'){parts={'Fed (P)':h.ry.P*P,'Growth (G)':h.ry.G*G,'Inflasi (I)':h.ry.I*I,'Stres (R)':h.ry.R*R,'Likuiditas (L)':h.ry.L*L};for(const k in parts)parts[k]*=m.ry}
+  else if(a.hub==='usd'){parts={'Selisih Fed':h.usd.Pd*Pd,'Real yield':h.usd.RY*RY,'Stres (R)':h.usd.R*R,'Likuiditas (L)':h.usd.L*L,'Growth (G)':h.usd.G*G};for(const k in parts)parts[k]*=m.usd}
+  else{const b=st.model.beta[a.k];parts={'Growth (G)':b[0]*G,'Inflasi (I)':b[1]*I,'Fed (P)':b[2]*P,'Likuiditas (L)':b[3]*L,'Stres (R)':b[4]*R,'Real yield':b[5]*RY*m.ry,'USD':b[6]*USD*m.usd}}
+  const sv=(scn.v[a.k]||0)*inten;if(sv)parts['Skenario']=sv;
+  score=Object.values(parts).reduce((x,y)=>x+y,0);
+  let cot=null,cr=null,flag='';if(a.cot){cot=cotCalc(st,a.cot);if(cot.pct!=null){cr=(cot.pct-.5)*2*(a.inv?-1:1);
+    if(Math.abs(cr)>.8){const same=Math.sign(cr)===Math.sign(score)&&Math.abs(score)>=.4;flag=same?'ramai searah':'ramai berlawanan'}}}
+  let conv=crisis?.5:cov*(cbs.FED.has?1:.75);if(flag==='ramai searah')conv*=.7;
+  return{...a,score,parts,cot,cr,flag,conv}});
+ return{ix,cbs,P,Pd,sh,lq,L,R,q,RY,USD,crisis,out,scn,inten}}
+function lab(v){return v>=1?['Naik kuat','p']:v>=.4?['Naik','p']:v<=-1?['Turun kuat','n']:v<=-.4?['Turun','n']:['Netral','z']}
+const bar=(v,max=3)=>{const w=clamp(Math.abs(v)/max,0,1)*50,p=v>=0;return `<span class="bar"><i class="${p?'p':'n'}" style="${p?'left':'right'}:50%;width:${w}%"></i></span>`};
+
+/* ---------- persistence ---------- */
+function setStatus(k){const t={db:'tersimpan di artifact',lokal:'tersimpan di browser ini',busy:'menyimpan',err:'gagal simpan ke artifact, ada di browser ini'};$('#savest').textContent=t[k]||k}
+function persist(){clearTimeout(saveT);setStatus('busy');saveT=setTimeout(flush,700)}
+async function flush(){if(saving){saveT=setTimeout(flush,400);return}
+ const js=JSON.stringify(state);try{localStorage.setItem('med-v1',js)}catch(e){}
+ if(!dbDoc){setStatus('lokal');return}
+ saving=true;try{await dbDoc.set({v:1,json:js,at:new Date().toISOString()});setStatus('db')}catch(e){setStatus('err')}finally{saving=false}}
+function loadLocal(){try{const s=localStorage.getItem('med-v1');return s?JSON.parse(s):null}catch(e){return null}}
+
+/* ---------- binding ---------- */
+const split=p=>p[0]==='~'?[draft,p.slice(1)]:[state,p];
+const gp=p=>{const[r,k]=split(p);return k.split('.').reduce((o,x)=>o==null?o:o[x],r)};
+const sp=(p,v)=>{const[r,k]=split(p);const ks=k.split('.');let o=r;for(let i=0;i<ks.length-1;i++){if(o[ks[i]]==null)o[ks[i]]={};o=o[ks[i]]}o[ks[ks.length-1]]=v};
+const IN=(p,o={})=>`<input class="in ${o.c||''}" data-b="${p}" data-t="n" type="text" inputmode="decimal" value="${esc(gp(p)==null?'':gp(p))}" placeholder="${esc(o.ph||'')}" aria-label="${esc(o.al||p)}">`;
+const SEL=(p,opts,o={})=>`<select data-b="${p}" data-t="${o.t||'s'}" ${o.full?'data-full="1"':''} aria-label="${esc(o.al||p)}">${opts.map(([v,l])=>`<option value="${esc(v)}" ${String(gp(p))===String(v)?'selected':''}>${esc(l)}</option>`).join('')}</select>`;
+const DT=(p,al)=>`<input class="in" type="date" data-b="${p}" data-t="s" value="${esc(gp(p)||'')}" aria-label="${al||p}">`;
+const F=(l,h,id)=>`<div class="fld">${id?`<label for="${id}">${l}</label>`:`<label>${l}</label>`}${h}</div>`;
+const exBanner=()=>state.example?`<div class="banner"><span>Semua angka saat ini adalah contoh rekaan untuk memperlihatkan cara kerja, bukan data pasar.</span><button class="btn sm" data-act="clearex">Kosongkan contoh</button></div>`:'';
+
+/* ---------- views ---------- */
+const TABS=[['dash','Ringkasan'],['rel','Rilis data'],['cb','Bank sentral'],['cot','COT'],['shock','Shock & likuiditas'],['model','Model & data']];
+
+function interp(grid,z){const g=[...grid].sort((a,b)=>a.z-b.z);z=clamp(z,g[0].z,g[g.length-1].z);
+ for(let i=0;i<g.length-1;i++){if(z<=g[i+1].z){const t=(z-g[i].z)/((g[i+1].z-g[i].z)||1);const m=k=>g[i][k]+t*(g[i+1][k]-g[i][k]);return{dn:m('p_dn'),fl:m('p_flat'),up:m('p_up')}}}
+ const e=g[g.length-1];return{dn:e.p_dn,fl:e.p_flat,up:e.p_up}}
+function probCard(r){const pr=state.prob;
+ if(!pr||!pr.assets)return `<section class="card"><h2>Probabilitas reaksi rilis terakhir</h2><p class="mute" style="margin:0">Belum ada probabilitas. Jalankan notebook L2, lalu impor prob_export.json di tab Model & data.</p></section>`;
+ const rows=r.ix.rows.filter(x=>x.z!=null&&x.age>=0);if(!rows.length)return `<section class="card"><h2>Probabilitas reaksi rilis terakhir</h2><p class="mute" style="margin:0">Belum ada rilis dengan konsensus pada tanggal analisis.</p></section>`;
+ const last=rows.reduce((m,x)=>x.date>m?x.date:m,'');const grp=rows.filter(x=>x.date===last);
+ const mean=c=>{const a=grp.filter(x=>x.cat===c);return a.length?a.reduce((t,x)=>t+x.z,0)/a.length:null};
+ const zI=mean('I'),zG=mean('G');const cat=(zI!=null&&(zG==null||Math.abs(zI)>=Math.abs(zG)))?'I':'G';const z=clamp(cat==='I'?zI:zG,-3,3);
+ const lines=Object.entries(pr.assets).map(([k,a])=>{const g=a.grid&&a.grid[cat];if(!g||!g.length)return '';const p=interp(g,z);const ok=a.verdict==='lulus';const nm=(ASSETS.find(x=>x.k===k)||{n:k}).n;
+  return `<tr class="${ok?'':'dim'}"><td>${esc(nm)}</td><td style="min-width:140px"><span class="pb"><i class="d" style="width:${p.dn*100}%"></i><i class="f" style="width:${p.fl*100}%"></i><i class="u" style="width:${p.up*100}%"></i></span></td><td class="n"><span class="neg">${Math.round(p.dn*100)}</span> / ${Math.round(p.fl*100)} / <span class="pos">${Math.round(p.up*100)}</span></td><td><span class="tag ${ok?'p':a.verdict==='gagal'?'n':'w'}">${ok?'lulus uji':a.verdict==='gagal'?'gagal uji':'data kurang'}</span></td><td class="n">${a.skill==null?'–':sg(a.skill,3)}</td></tr>`}).join('');
+ return `<section class="card"><h2>Probabilitas reaksi rilis terakhir</h2>
+ <p style="margin:0 0 8px">Rilis ${last}, surprise ${cat==='I'?'inflasi':'growth'} z = <b style="font-family:var(--f-num)">${sg(z)}</b>. Peluang dalam ${pr.horizon_min} menit: turun / datar / naik (%).</p>
+ ${pr.synthetic?'<p class="note" style="color:var(--warn)">Probabilitas ini berasal dari data sintetis (uji kode), bukan pasar.</p>':''}
+ <div class="tw"><table style="min-width:480px"><thead><tr><th>Aset</th><th></th><th class="n">Turun / datar / naik</th><th>Uji</th><th class="n">Skill</th></tr></thead><tbody>${lines||'<tr><td colspan="5" class="mute">Tidak ada grid untuk jenis rilis ini.</td></tr>'}</tbody></table></div>
+ <p class="note">Hanya baris yang lulus uji walk-forward boleh dipakai sebagai probabilitas. Yang redup belum terbukti lebih baik daripada frekuensi historis. Skill adalah 1 − Brier model / Brier klimatologi.</p></section>`}
+function viewDash(){const r=run(state);const f=(v)=>`<span class="${v>.25?'pos':v<-.25?'neg':'mute'}">${sg(v)}</span>`;
+ const nh=r.out.filter(a=>!a.hub),sorted=[...nh].sort((a,b)=>b.score-a.score);
+ const risk=['SPX','NDX','EEM','BTC','AUDUSD','IHSG'].map(k=>r.out.find(a=>a.k===k).score),rk=risk.reduce((a,b)=>a+b,0)/risk.length;
+ const hv=(r.out.find(a=>a.k==='XAU').score+r.out.find(a=>a.k==='DXY').score-r.out.find(a=>a.k==='USDJPY').score)/3;
+ const dirn=rk>.3&&hv<0?'Modal cenderung ke aset berisiko.':rk<-.3&&hv>.3?'Modal cenderung ke safe haven (USD, emas, JPY).':'Arah modal campuran, tidak ada sisi yang dominan.';
+ const list=a=>a.map(x=>`<li class="chk"><span>${esc(x.n)}</span><b class="${x.score>=0?'pos':'neg'}">${sg(x.score)}</b></li>`).join('');
+ const warn=[];const noc=state.releases.filter(x=>x.cons==null).length;
+ if(r.ix.nG+r.ix.nI<4)warn.push(`Hanya ${r.ix.nG+r.ix.nI} rilis dengan konsensus dalam ${state.set.win} hari. Indeks surprise belum stabil.`);
+ if(noc)warn.push(`${noc} rilis tanpa konsensus tidak ikut dihitung.`);
+ if(!r.cbs.FED.has)warn.push('Data Fed belum diisi, faktor kebijakan (P) dianggap netral.');
+ if(!r.lq.ok)warn.push('Net liquidity belum lengkap, faktor likuiditas (L) dianggap 0.');
+ if(!r.sh.have)warn.push('Data volatilitas belum diisi, mode shock tidak bisa dinilai.');
+ const cs=COTS.filter(([k])=>state.cot[k].rows.length&&cotCalc(state,k).pct==null).map(([,n])=>n);
+ if(cs.length)warn.push('COT '+cs.join(', ')+': riwayat kurang dari 10 laporan dan rentang manual belum diisi.');
+ const dflt=IND.filter(d=>state.releases.some(x=>x.ind===d.id)&&sigmaFor(state,d.id).src==='awal').length;
+ if(dflt)warn.push(`${dflt} indikator masih memakai σ awal bawaan. Kalibrasi di tab Model & data.`);
+ const rowsHtml=r.out.map(a=>{const[l,c]=lab(a.score);const open=ui.open===a.k;
+  const cot=a.cot&&a.cot.pct!=null?`<span class="tag ${a.flag==='ramai searah'?'w':'z'}">${a.flag||'pct '+Math.round(a.cot.pct*100)}</span>`:'<span class="mute">–</span>';
+  let bd='';if(open){const mx=Math.max(1,...Object.values(a.parts).map(Math.abs));
+   bd=`<tr><td colspan="5"><div class="grid" style="gap:6px 24px">${Object.entries(a.parts).map(([k,v])=>`<div class="bk"><span>${esc(k)}</span>${bar(v,mx)}<b class="${v>=0?'pos':'neg'}" style="font-family:var(--f-num);font-weight:500;text-align:right">${sg(v)}</b></div>`).join('')}</div>
+   <p class="note">${r.crisis?'Mode krisis: logika normal dimatikan, skor dari tabel fase.':`Rantai: Fed ${sg(r.P)} → real yield ${sg(r.RY)} → USD ${sg(r.USD)} → ${esc(a.n)} ${sg(a.score)}. Pengali rezim real yield ${fx(state.model.mult[r.q].ry,1)}, USD ${fx(state.model.mult[r.q].usd,1)}.`}</p></td></tr>`}
+  return `<tr class="clk" data-act="open" data-k="${a.k}"><td>${esc(a.n)}</td><td class="n" style="min-width:150px"><div style="display:grid;grid-template-columns:48px 1fr;gap:8px;align-items:center"><b style="font-weight:500">${sg(a.score)}</b>${bar(a.score)}</div></td><td><span class="tag ${c}">${l}</span></td><td>${cot}</td><td class="n">${Math.round(a.conv*100)}%</td></tr>${bd}`}).join('');
+ return `${exBanner()}
+ <section class="card mode ${r.sh.mode.toLowerCase()}"><h2>Mode pasar</h2><div class="row" style="align-items:baseline;gap:6px 18px"><span class="big">${r.sh.mode}</span><span class="mute">${r.sh.n} dari 4 pemicu menyala${r.crisis?`. ${PHN[state.shock.ph||1]}`:''}${r.scn.n!=='Tidak ada'?`. Skenario: ${esc(r.scn.n)}`:''}</span></div></section>
+ <div class="grid">
+  <section class="card"><h2>Rezim fundamental</h2><div class="big" style="font-size:16px;font-family:var(--f-ui);font-weight:600">${QUAD[r.q]}</div>
+   <dl class="kv" style="margin-top:10px"><dt>Growth (G)</dt><dd>${f(r.ix.G)} <span class="mute">n=${r.ix.nG}</span></dd><dt>Inflasi (I)</dt><dd>${f(r.ix.I)} <span class="mute">n=${r.ix.nI}</span></dd><dt>Fed (P)</dt><dd>${f(r.P)}</dd><dt>Likuiditas (L)</dt><dd>${f(r.L)}</dd><dt>Stres (R)</dt><dd>${fx(r.R)}</dd></dl>
+   <p class="note">G dan I adalah indeks surprise berbobot waktu (z-score, paruh waktu ${state.set.hl} hari). Nilai di bawah 0,25 dianggap lemah.</p></section>
+  <section class="card"><h2>Arah aliran modal</h2><p style="margin:0 0 8px;font-weight:500">${dirn}</p>
+   <div class="grid" style="gap:10px"><div><div class="lbl">Tekanan naik</div><ul class="clean">${list(sorted.slice(0,3))}</ul></div><div><div class="lbl">Tekanan turun</div><ul class="clean">${list(sorted.slice(-3).reverse())}</ul></div></div>
+   <p class="note">Risk appetite ${sg(rk)} · safe haven ${sg(hv)}</p></section>
+ </div>
+ ${probCard(r)}
+ <section class="card"><h2>Matriks dampak antar aset</h2><div class="tw"><table style="min-width:540px"><thead><tr><th>Aset</th><th>Skor (σ)</th><th>Arah</th><th>COT</th><th class="n">Keyakinan</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>
+  <p class="note">Ketuk baris untuk melihat kontribusi tiap faktor. Skor adalah tekanan arah relatif (satuan σ), bukan target harga. Keyakinan adalah heuristik kelengkapan data, bukan probabilitas.</p></section>
+ ${warn.length?`<section class="card"><h2>Catatan kualitas data</h2><ul class="clean">${warn.map(w=>`<li>${esc(w)}</li>`).join('')}</ul></section>`:''}`}
+
+function formRel(){const d=draft.rel;
+ return `${exBanner()}<section class="card"><h2>Tambah rilis data</h2>
+ <div class="row">${F('Tanggal rilis',DT('~rel.date'))}
+  ${F('Indikator',SEL('~rel.ind',IND.map(x=>[x.id,`${x.n} (${x.c==='I'?'inflasi':'growth'}, ${x.u})`])))}
+  ${F('Actual',IN('~rel.act',{c:'',al:'Actual'}))}${F('Konsensus',IN('~rel.cons',{al:'Konsensus'}))}
+  <button class="btn" data-act="addrel">Tambah</button></div>
+ <p class="note" id="relmsg">${esc(ui.msg)}</p>
+ <details style="margin-top:8px"><summary>Tempel banyak baris (CSV)</summary><p class="note">Format: tanggal,id_indikator,actual,konsensus. Satu baris per rilis. ID: ${IND.map(x=>x.id).join(', ')}.</p>
+ <textarea data-b="~csvRel" data-t="s" aria-label="CSV rilis" placeholder="2026-09-11,cpi_core,0.3,0.3">${esc(draft.csvRel)}</textarea><div style="margin-top:6px"><button class="btn ghost sm" data-act="csvrel">Impor baris</button></div></details></section>`}
+function outRel(){const ix=indices(state);const rows=[...ix.rows].sort((a,b)=>a.date<b.date?1:-1);
+ const body=rows.map(r=>{const d=IND_BY[r.ind];const z=r.z;return `<tr><td class="n">${r.date}</td><td>${esc(d.n)}</td><td><span class="tag z">${d.c==='I'?'inflasi':'growth'}</span></td><td class="n">${fx(r.act,2)}</td><td class="n">${r.cons==null?'<span class="mute">kosong</span>':fx(r.cons,2)}</td><td class="n ${z==null?'mute':z>0?'pos':'neg'}">${sg(z)}</td><td class="n mute">${r.w?fx(r.w,2):'di luar jendela'}</td><td><button class="btn del sm" data-act="delrel" data-id="${r.id}" aria-label="Hapus">Hapus</button></td></tr>`}).join('');
+ return `<section class="card"><h2>Indeks surprise</h2><div class="row" style="gap:24px"><div><div class="lbl">Growth (G)</div><div class="big ${ix.G>.25?'pos':ix.G<-.25?'neg':''}">${sg(ix.G)}</div><div class="note">${ix.nG} rilis aktif</div></div><div><div class="lbl">Inflasi (I)</div><div class="big ${ix.I>.25?'pos':ix.I<-.25?'neg':''}">${sg(ix.I)}</div><div class="note">${ix.nI} rilis aktif</div></div></div>
+ <p class="note">Surprise z = tanda × (actual − konsensus) / σ. Tanda dibuat searah: positif berarti lebih kuat (growth) atau lebih panas (inflasi). Pengangguran dan klaim dibalik tandanya.</p></section>
+ <section class="card"><h2>Riwayat rilis (${rows.length})</h2><div class="tw"><table style="min-width:620px"><thead><tr><th class="n">Tanggal</th><th>Indikator</th><th>Jenis</th><th class="n">Actual</th><th class="n">Konsensus</th><th class="n">z</th><th class="n">Bobot</th><th></th></tr></thead><tbody>${body||'<tr><td colspan="8" class="mute">Belum ada rilis. Tambahkan lewat form di atas.</td></tr>'}</tbody></table></div></section>`}
+
+const TXT=[[-2,'Sangat dovish'],[-1,'Dovish'],[0,'Netral'],[1,'Hawkish'],[2,'Sangat hawkish']];
+const DEC=[[-2,'Jauh lebih dovish dari ekspektasi'],[-1,'Sedikit lebih dovish'],[0,'Sesuai ekspektasi'],[1,'Sedikit lebih hawkish'],[2,'Jauh lebih hawkish']];
+function formCB(){return `${exBanner()}<div class="grid">${CBS.map(([k,n])=>`<section class="card"><h3>${n}</h3>
+ <div class="row" style="margin-top:8px">${F('Suku bunga (%)',IN(`cb.${k}.rate`,{al:n+' suku bunga'}))}${F('Implied 12 bln (%)',IN(`cb.${k}.imp`,{al:n+' implied'}))}${F('Inflasi inti (%)',IN(`cb.${k}.infl`,{al:n+' inflasi'}))}</div>
+ <div class="row" style="margin-top:8px">${F('Nada pernyataan',SEL(`cb.${k}.txt`,TXT,{t:'n',al:n+' nada'}))}${F('Keputusan vs ekspektasi',SEL(`cb.${k}.dec`,DEC,{t:'n',al:n+' keputusan'}))}</div></section>`).join('')}</div>
+ <p class="note">Implied 12 bulan: ambil dari fed funds futures / OIS (misalnya CME FedWatch), atau pakai yield 2Y sebagai pendekatan kasar.</p>`}
+function outCB(){const cb={};for(const[k]of CBS)cb[k]=cbStance(state.cb[k]);const fed=state.cb.FED;
+ const rows=CBS.map(([k,n])=>{const c=cb[k],s=state.cb[k];const dr=(k!=='FED'&&s.rate!=null&&fed.rate!=null)?s.rate-fed.rate:null;const di=(k!=='FED'&&s.imp!=null&&fed.imp!=null)?(s.imp-s.rate)-(fed.imp-fed.rate):null;
+  return `<tr><td>${n}</td><td class="n">${sg(c.st)}</td><td style="min-width:110px">${bar(c.st)}</td><td class="n">${c.real==null?'–':sg(c.real)}</td><td class="n">${dr==null?'–':sg(dr)}</td><td class="n">${di==null?'–':sg(di)}</td></tr>`}).join('');
+ return `<section class="card"><h2>Sikap kebijakan</h2><div class="tw"><table style="min-width:520px"><thead><tr><th>Bank sentral</th><th class="n">Stance</th><th></th><th class="n">Suku bunga riil</th><th class="n">Selisih vs Fed</th><th class="n">Selisih jalur</th></tr></thead><tbody>${rows}</tbody></table></div>
+ <p class="note">Stance = 0,35 × langkah 25 bps yang di-price + 0,35 × nada + 0,30 × keputusan vs ekspektasi, dibatasi ±3. Positif berarti hawkish. Selisih jalur membandingkan perubahan implied terhadap Fed (untuk pair non-USD).</p></section>`}
+
+function formCOT(){const k=draft.cotKey;if(!draft.cot.d)draft.cot.d=lastTue(state.asof);const rel=validDate(draft.cot.d)?addDays(draft.cot.d,3):'';
+ return `${exBanner()}<section class="card"><h2>Tambah laporan COT</h2><div class="row">
+ ${F('Instrumen',SEL('~cotKey',COTS,{full:true,al:'Instrumen'}))}${F('Tanggal posisi (Selasa)',DT('~cot.d'))}${F('Net spekulan (kontrak)',IN('~cot.net',{al:'Net spekulan'}))}${F('Open interest',IN('~cot.oi',{al:'Open interest'}))}<button class="btn" data-act="addcot">Tambah</button></div>
+ <p class="note">Laporan terbit hari Jumat ${rel?`(untuk posisi ini: ${rel})`:''}. Sistem hanya memakai laporan yang sudah terbit pada tanggal analisis, supaya tidak ada look-ahead. Net spekulan = Managed Money (Disaggregated, komoditas) atau Leveraged Funds (TFF, forex dan indeks), long dikurangi short.</p>
+ <p class="note" id="cotmsg">${esc(ui.msg)}</p>
+ <div class="row" style="margin-top:8px">${F('Rentang manual: min net/OI (%)',IN(`cot.${k}.min`,{al:'Min'}))}${F('maks net/OI (%)',IN(`cot.${k}.max`,{al:'Maks'}))}</div>
+ <p class="note">Opsional. Isi jika riwayat Anda kurang dari 10 laporan, mis. dari rentang 3 tahun yang Anda lihat di situs CFTC.</p>
+ <details style="margin-top:8px"><summary>Tempel banyak baris (CSV)</summary><p class="note">Format: tanggal_posisi,net,open_interest. Untuk instrumen yang sedang dipilih.</p><textarea data-b="~csvCot" data-t="s" aria-label="CSV COT" placeholder="2026-09-22,181000,520000">${esc(draft.csvCot)}</textarea><div style="margin-top:6px"><button class="btn ghost sm" data-act="csvcot">Impor baris</button></div></details></section>`}
+function spark(ser){if(ser.length<2)return '';const w=300,h=54,mn=Math.min(...ser),mx=Math.max(...ser),sp=mx-mn||1;
+ const X=i=>6+i*(w-12)/(ser.length-1),Y=v=>h-6-(v-mn)/sp*(h-12);const pts=ser.map((v,i)=>X(i).toFixed(1)+','+Y(v).toFixed(1)).join(' ');
+ const q=p=>{const s=[...ser].sort((a,b)=>a-b);return s[Math.floor(p*(s.length-1))]};
+ return `<svg class="spark" viewBox="0 0 ${w} ${h}" role="img" aria-label="Net per open interest"><line class="g" x1="0" x2="${w}" y1="${Y(q(.9))}" y2="${Y(q(.9))}"/><line class="g" x1="0" x2="${w}" y1="${Y(q(.1))}" y2="${Y(q(.1))}"/><polyline class="l" points="${pts}"/><circle class="d" cx="${X(ser.length-1)}" cy="${Y(ser[ser.length-1])}" r="3"/></svg>`}
+function outCOT(){const k=draft.cotKey,c=state.cot[k],cc=cotCalc(state,k);const nm=COTS.find(x=>x[0]===k)[1];
+ const rows=[...c.rows].sort((a,b)=>a.d<b.d?1:-1).slice(0,12).map(r=>`<tr><td class="n">${r.d}</td><td class="n">${addDays(r.d,3)}</td><td class="n">${r.net}</td><td class="n">${r.oi}</td><td class="n">${fx(r.oi?r.net/r.oi*100:null,1)}%</td><td><button class="btn del sm" data-act="delcot" data-d="${r.d}" aria-label="Hapus">Hapus</button></td></tr>`).join('');
+ const sum=COTS.map(([kk,n])=>{const x=cotCalc(state,kk);return `<tr><td>${n}</td><td class="n">${x.n?fx(x.last,1)+'%':'–'}</td><td class="n">${x.pct==null?'–':Math.round(x.pct*100)}</td><td>${x.pct==null?'<span class="mute">data kurang</span>':x.pct>.9?'<span class="tag w">ramai long</span>':x.pct<.1?'<span class="tag w">ramai short</span>':'<span class="tag z">normal</span>'}</td></tr>`}).join('');
+ return `<section class="card"><h2>${nm}</h2>${cc.n?`<div class="row" style="gap:24px;align-items:center"><div><div class="lbl">Net / OI terakhir</div><div class="big">${fx(cc.last,1)}%</div><div class="note">posisi ${cc.pos}, terbit ${cc.rel}</div></div><div><div class="lbl">Persentil</div><div class="big">${cc.pct==null?'–':Math.round(cc.pct*100)}</div><div class="note">${cc.pct==null?'butuh 10 laporan atau rentang manual':cc.src}</div></div>${spark(cc.ser)}</div>`:'<p class="mute">Belum ada laporan yang sudah terbit untuk instrumen ini.</p>'}
+ <div class="tw" style="margin-top:10px"><table style="min-width:420px"><thead><tr><th class="n">Posisi</th><th class="n">Terbit</th><th class="n">Net</th><th class="n">OI</th><th class="n">Net/OI</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="6" class="mute">Kosong.</td></tr>'}</tbody></table></div></section>
+ <section class="card"><h2>Semua instrumen</h2><div class="tw"><table style="min-width:380px"><thead><tr><th>Instrumen</th><th class="n">Net/OI</th><th class="n">Persentil</th><th>Status</th></tr></thead><tbody>${sum}</tbody></table></div>
+ <p class="note">COT bukan sinyal arah. Posisi ramai searah dengan skor dampak menurunkan keyakinan karena risiko pembalikan.</p></section>`}
+
+function formShock(){const s=state.shock;
+ return `${exBanner()}<section class="card"><h2>Volatilitas dan kredit</h2><div class="row">${F('VIX',IN('shock.vix',{al:'VIX'}))}${F('VIX3M',IN('shock.vix3m',{al:'VIX3M'}))}${F('MOVE',IN('shock.move',{al:'MOVE'}))}${F('HY OAS (%)',IN('shock.hy',{al:'HY OAS'}))}${F('HY OAS 20 hari lalu (%)',IN('shock.hyp',{al:'HY OAS 20 hari lalu'}))}</div>
+ <p class="note">HY OAS = ICE BofA US High Yield OAS (FRED: BAMLH0A0HYM2), dalam persen.</p></section>
+ <section class="card"><h2>Net liquidity (miliar USD)</h2><div class="row">${F('WALCL sekarang',IN('liq.w0',{al:'WALCL sekarang'}))}${F('TGA sekarang',IN('liq.t0',{al:'TGA sekarang'}))}${F('RRP sekarang',IN('liq.r0',{al:'RRP sekarang'}))}</div>
+ <div class="row" style="margin-top:8px">${F('WALCL 4 minggu lalu',IN('liq.w1',{al:'WALCL 4 minggu lalu'}))}${F('TGA 4 minggu lalu',IN('liq.t1',{al:'TGA 4 minggu lalu'}))}${F('RRP 4 minggu lalu',IN('liq.r1',{al:'RRP 4 minggu lalu'}))}</div>
+ <p class="note">Samakan semua satuan ke miliar USD. Periksa satuan tiap seri di FRED: WALCL dan TGA sering dalam jutaan (bagi 1000), RRP dalam miliar.</p></section>
+ <section class="card"><h2>Skenario dan fase</h2><div class="row">${F('Skenario overlay',SEL('shock.scn',Object.entries(SCEN).map(([k,v])=>[k,v.n]),{full:true,al:'Skenario'}))}${F('Intensitas (0 sampai 1,5)',IN('shock.int',{al:'Intensitas'}))}${F('Fase krisis (dipakai jika mode KRISIS)',SEL('shock.ph',[[1,PHN[1]],[2,PHN[2]],[3,PHN[3]]],{t:'n',al:'Fase'}))}</div>
+ <p class="note" id="scnnote">${esc((SCEN[state.shock.scn]||{}).t||'Overlay menambah skor di atas model, bukan menggantinya.')}</p></section>`}
+function outShock(){const r=run(state);
+ return `<section class="card mode ${r.sh.mode.toLowerCase()}"><h2>Status</h2><div class="row" style="align-items:baseline;gap:6px 18px"><span class="big">${r.sh.mode}</span><span class="mute">Stres R = ${fx(r.R)} · Likuiditas L = ${sg(r.L)}</span></div>
+ <ul class="clean" style="margin-top:10px">${r.sh.t.map(t=>`<li class="chk"><span class="dot ${t.on?'on':''}"></span><span>${t.k}</span><b>${t.v}</b></li>`).join('')}</ul>
+ <p class="note">Dua pemicu atau lebih: mode krisis, logika normal dimatikan dan skor diambil dari tabel fase. Satu pemicu: waspada, hanya faktor stres R yang naik.</p>
+ ${r.lq.ok?`<p class="note">Net liquidity ${fx(r.lq.now,0)} (sebelumnya ${fx(r.lq.prev,0)}), perubahan ${sg(r.lq.d,0)} miliar. L = perubahan / 150, dibatasi ±2.</p>`:'<p class="note">Net liquidity belum lengkap.</p>'}</section>`}
+
+function formModel(){const m=state.model,A=ASSETS.filter(a=>!a.hub);
+ const bt=A.map(a=>`<tr><td>${a.n}</td>${FACT.map((f,i)=>`<td>${IN(`model.beta.${a.k}.${i}`,{c:'s',al:a.n+' '+f})}</td>`).join('')}</tr>`).join('');
+ const sig=IND.map(d=>{const s=sigmaFor(state,d.id);return `<tr><td>${d.n}</td><td class="n">${fx(s.v,3)}</td><td class="mute">${s.src}</td><td>${IN('sigma.'+d.id,{c:'s',ph:'manual',al:d.n+' sigma'})}</td></tr>`}).join('');
+ const hub=(g,ks)=>ks.map(k=>F(k,IN(`model.hub.${g}.${k}`,{c:'s',al:g+' '+k}))).join('');
+ const mult=Object.keys(QUAD).map(q=>`<tr><td>${QUAD[q]}</td><td>${IN(`model.mult.${q}.ry`,{c:'s',al:q+' ry'})}</td><td>${IN(`model.mult.${q}.usd`,{c:'s',al:q+' usd'})}</td></tr>`).join('');
+ return `${exBanner()}
+ <section class="card"><h2>Parameter waktu</h2><div class="row">${F('Paruh waktu bobot (hari)',IN('set.hl',{al:'Paruh waktu'}))}${F('Jendela rilis (hari)',IN('set.win',{al:'Jendela'}))}${F('Shrinkage k',IN('set.k',{al:'Shrinkage'}))}</div>
+ <p class="note">Indeks = Σ(bobot × z) / (Σ bobot + k). Nilai k lebih besar menahan indeks agar tidak melonjak karena satu rilis.</p></section>
+ <section class="card"><h2>Beta aset terhadap faktor</h2><p class="note" style="margin:0 0 8px">Ini prior ekonomi awal, belum hasil estimasi dari data Anda. Ganti dengan beta dari regresi rolling saat layer L2 selesai.</p>
+ <div class="tw"><table style="min-width:560px"><thead><tr><th>Aset</th>${FACT.map(f=>`<th class="n">${f}</th>`).join('')}</tr></thead><tbody>${bt}</tbody></table></div></section>
+ <div class="grid"><section class="card"><h2>Hub real yield</h2><div class="row">${hub('ry',['P','G','I','R','L'])}</div></section>
+ <section class="card"><h2>Hub USD (DXY)</h2><div class="row">${hub('usd',['Pd','RY','R','L','G'])}</div></section></div>
+ <section class="card"><h2>Pengali rezim</h2><div class="tw"><table style="min-width:420px"><thead><tr><th>Rezim</th><th class="n">Real yield</th><th class="n">USD</th></tr></thead><tbody>${mult}</tbody></table></div><p class="note">Pengali pada jalur real yield membuat reaksi berbeda antar rezim: saat inflasi menjadi ketakutan utama, kenaikan yield menekan aset berisiko lebih kuat.</p></section>
+ <section class="card"><h2>σ surprise per indikator</h2><div class="tw"><table style="min-width:420px"><thead><tr><th>Indikator</th><th class="n">σ dipakai</th><th>Sumber</th><th>Ubah</th></tr></thead><tbody>${sig}</tbody></table></div><p class="note">σ awal adalah perkiraan kasar. Setelah 8 rilis dengan konsensus, sistem memakai simpangan baku empiris Anda. Isi kolom Ubah untuk menimpa.</p></section>
+ <section class="card"><h2>Probabilitas dari notebook L2</h2>
+ ${state.prob?`<p class="note" style="margin:0 0 8px">Terimpor: ${esc(state.prob.generated||'')}, horizon ${state.prob.horizon_min} menit${state.prob.synthetic?', DATA SINTETIS':''}, aset: ${esc(Object.keys(state.prob.assets||{}).join(', '))}.</p>`:'<p class="note" style="margin:0 0 8px">Belum ada probabilitas terimpor.</p>'}
+ <div class="fld"><label for="impp">Tempel isi prob_export.json</label><textarea id="impp" data-b="~impProb" data-t="s" placeholder="{ &quot;generated&quot;: ..."></textarea></div>
+ <div class="row" style="margin-top:6px"><button class="btn ghost sm" data-act="importprob">Impor probabilitas</button><button class="btn del sm" data-act="clearprob">Hapus</button></div><p class="note" id="probmsg">${esc(ui.msg)}</p></section>
+ <section class="card"><h2>Cadangan data</h2><div class="row"><button class="btn" data-act="export">Simpan JSON</button><button class="btn ghost" data-act="reset">Kembalikan model ke awal</button></div>
+ <div class="fld" style="margin-top:10px"><label for="imp">Impor JSON</label><textarea id="imp" data-b="~imp" data-t="s" placeholder="Tempel isi file JSON di sini"></textarea></div>
+ <div style="margin-top:6px"><button class="btn ghost sm" data-act="import">Impor</button></div><p class="note" id="expmsg">${esc(ui.msg)}</p></section>`}
+
+const VIEWS={dash:{f:viewDash},rel:{f:formRel,o:outRel},cb:{f:formCB,o:outCB},cot:{f:formCOT,o:outCOT},shock:{f:formShock,o:outShock},model:{f:formModel}};
+function renderTabs(){$('#tabs').innerHTML=TABS.map(([k,n])=>`<button role="tab" data-act="tab" data-k="${k}" aria-selected="${ui.tab===k}">${n}</button>`).join('')}
+function renderMain(){const v=VIEWS[ui.tab];$('#main').innerHTML=v.f()+(v.o?'<div id="out" style="display:flex;flex-direction:column;gap:14px"></div>':'');refreshOut();$('#asof').value=state.asof}
+function refreshOut(){const v=VIEWS[ui.tab];if(v.o){$('#out').innerHTML=v.o()}}
+function renderAll(){renderTabs();renderMain()}
+
+/* ---------- events ---------- */
+function csvRows(t){return t.split(/\r?\n/).map(l=>l.trim()).filter(Boolean).map(l=>l.split(/[,;\t]/).map(x=>x.trim()))}
+function mkid(){return 'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+document.addEventListener('change',e=>{const el=e.target.closest('[data-b]');if(!el)return;let v=el.value;
+ if(el.dataset.t==='n')v=num(v);sp(el.dataset.b,v);
+ if(el.dataset.b[0]!=='~'){if(el.dataset.b==='asof'&&!validDate(v))return;persist()}
+ if(el.dataset.full||el.dataset.b==='shock.scn'||el.dataset.b==='~cotKey'){renderMain()}else{refreshOut();if(ui.tab==='shock'){const n=$('#scnnote');if(n)n.textContent=(SCEN[state.shock.scn]||{}).t||'Overlay menambah skor di atas model, bukan menggantinya.'}}});
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;
+ if(a==='tab'){ui.tab=b.dataset.k;ui.msg='';renderAll();return}
+ if(a==='open'){ui.open=ui.open===b.dataset.k?null:b.dataset.k;renderMain();return}
+ if(a==='clearex'){state=norm({});state.example=false;persist();renderAll();return}
+ if(a==='addrel'){const d=draft.rel;ui.msg='';if(!validDate(d.date))ui.msg='Isi tanggal rilis.';else if(d.act==null)ui.msg='Isi nilai actual.';else if(d.cons==null)ui.msg='Konsensus kosong: rilis disimpan tetapi belum ikut dihitung.';
+  if(validDate(d.date)&&d.act!=null){state.releases.push({id:mkid(),date:d.date,ind:d.ind,act:d.act,cons:d.cons,prev:null,note:''});d.act=null;d.cons=null;persist()}
+  renderMain();return}
+ if(a==='delrel'){state.releases=state.releases.filter(r=>r.id!==b.dataset.id);persist();refreshOut();return}
+ if(a==='csvrel'){let ok=0,bad=0;for(const c of csvRows(draft.csvRel)){const[d,id,ac,co]=c;const A=num(ac),C=num(co);if(validDate(d)&&IND_BY[id]&&A!=null){state.releases.push({id:mkid(),date:d,ind:id,act:A,cons:C,prev:null,note:''});ok++}else bad++}
+  ui.msg=`${ok} baris masuk, ${bad} dilewati.`;draft.csvRel='';if(ok)persist();renderMain();return}
+ if(a==='addcot'){const d=draft.cot,c=state.cot[draft.cotKey];ui.msg='';
+  if(!validDate(d.d)||d.net==null||!(d.oi>0))ui.msg='Isi tanggal posisi, net spekulan, dan open interest.';
+  else{if(dow(d.d)!==2)ui.msg='Perhatian: tanggal posisi COT biasanya hari Selasa.';c.rows=c.rows.filter(r=>r.d!==d.d);c.rows.push({d:d.d,net:d.net,oi:d.oi});d.net=null;d.oi=null;d.d=addDays(d.d,7);persist()}
+  renderMain();return}
+ if(a==='delcot'){const c=state.cot[draft.cotKey];c.rows=c.rows.filter(r=>r.d!==b.dataset.d);persist();refreshOut();return}
+ if(a==='csvcot'){const c=state.cot[draft.cotKey];let ok=0,bad=0;for(const r of csvRows(draft.csvCot)){const[d,n,o]=r;const N=num(n),O=num(o);if(validDate(d)&&N!=null&&O>0){c.rows=c.rows.filter(x=>x.d!==d);c.rows.push({d,net:N,oi:O});ok++}else bad++}
+  ui.msg=`${ok} baris masuk, ${bad} dilewati.`;draft.csvCot='';if(ok)persist();renderMain();return}
+ if(a==='importprob'){try{const j=JSON.parse(draft.impProb);if(!j.assets||typeof j.assets!=='object')throw 0;state.prob={generated:j.generated,horizon_min:j.horizon_min,theta_k:j.theta_k,synthetic:!!j.synthetic,assets:j.assets};persist();ui.msg='Probabilitas diimpor.';draft.impProb=''}catch(x){ui.msg='JSON tidak valid. Pakai file prob_export.json dari notebook L2.'}renderMain();return}
+ if(a==='clearprob'){state.prob=null;persist();ui.msg='';renderMain();return}
+ if(a==='reset'){state.model=defModel();persist();renderMain();return}
+ if(a==='export'){try{const dl=await window.claude?.use?.('downloads');if(!dl)throw 0;await dl.save({filename:'macro-engine-desk.json',data:JSON.stringify(state,null,1)});ui.msg='File disimpan.'}catch(x){ui.msg=x&&x.code==='declined'?'Penyimpanan dibatalkan.':'Unduh tidak tersedia di tampilan ini. Salin isi kotak di bawah.';if(!(x&&x.code==='declined')){draft.imp=JSON.stringify(state)}}
+  renderMain();return}
+ if(a==='import'){try{const j=JSON.parse(draft.imp);state=norm(j);state.example=!!j.example;persist();ui.msg='Data diimpor.';draft.imp=''}catch(x){ui.msg='JSON tidak valid.'}renderAll();return}
+});
+
+/* ---------- boot ---------- */
+{const saved=loadLocal();state=saved?norm(saved):makeExample();if(saved&&saved.example)state.example=true}
+draft.rel.date=state.asof;renderAll();setStatus('lokal');
+(async()=>{try{const db=await window.claude?.use?.('db');if(!db)return;dbDoc=db.doc('state/main');const s=await dbDoc.get();
+ if(s.exists){const j=JSON.parse(s.data().json);state=norm(j);if(j.example)state.example=true;try{localStorage.setItem('med-v1',JSON.stringify(state))}catch(e){}renderAll()}
+ setStatus('db')}catch(e){setStatus('lokal')}})();
+
+/* ---------- feed otomatis (GitHub Actions -> data/feed.json) ---------- */
+async function applyFeed(){try{const r=await fetch('data/feed.json?'+Date.now(),{cache:'no-store'});if(!r.ok)return;const f=await r.json();if(!f||!f.generated)return;
+ if(state.example){state=norm(defaults());state.example=false}
+ for(const x of f.releases||[]){if(!IND_BY[x.ind]||x.act==null||!validDate(x.date))continue;
+  const o=state.releases.find(q=>q.ind===x.ind&&q.date===x.date);
+  if(!o)state.releases.push({id:mkid(),date:x.date,ind:x.ind,act:x.act,cons:x.cons,prev:null,note:'feed'});
+  else if(o.note==='feed'){o.act=x.act;if(x.cons!=null)o.cons=x.cons}}
+ for(const k in f.shock||{})if(f.shock[k]!=null&&k in state.shock)state.shock[k]=f.shock[k];
+ for(const k in f.liq||{})if(f.liq[k]!=null)state.liq[k]=f.liq[k];
+ for(const k in f.cb||{})if(state.cb[k]&&f.cb[k].rate!=null)state.cb[k].rate=f.cb[k].rate;
+ for(const k in f.cot||{})if(state.cot[k])for(const x of f.cot[k]){state.cot[k].rows=state.cot[k].rows.filter(q=>q.d!==x.d);state.cot[k].rows.push({d:x.d,net:x.net,oi:x.oi})}
+ state.asof=todayStr();persist();renderAll();
+ $('#savest').textContent='feed '+f.generated.slice(0,16).replace('T',' ')+' UTC · konsensus = proxy (rata-rata rilis sebelumnya)'}catch(e){}}
+applyFeed();
+</script>
