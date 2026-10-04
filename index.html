@@ -1,3 +1,7 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{box-sizing:border-box}body{margin:0;padding:0}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Macro Engine Desk</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
@@ -115,6 +119,8 @@ const IND=[
  {id:'ism_s',n:'ISM jasa',c:'G',s:1,u:'poin',sd:1.8},
  {id:'retail',n:'Penjualan ritel (m/m)',c:'G',s:1,u:'%',sd:0.5},
  {id:'ip',n:'Produksi industri (m/m)',c:'G',s:1,u:'%',sd:0.3},
+ {id:'empire',n:'Empire State (NY Fed)',c:'G',s:1,u:'poin',sd:8},
+ {id:'philly',n:'Philly Fed',c:'G',s:1,u:'poin',sd:9},
  {id:'gdp',n:'GDP (q/q anualisasi)',c:'G',s:1,u:'%',sd:0.7},
  {id:'cn_pmi',n:'PMI manufaktur China',c:'G',s:1,u:'poin',sd:0.7},
  {id:'eu_pmi',n:'PMI komposit Eropa',c:'G',s:1,u:'poin',sd:1.2}];
@@ -184,6 +190,11 @@ let draft={rel:{date:todayStr(),ind:'cpi_core',act:null,cons:null},cotKey:'GOLD'
 function lastTue(a){let d=a;while(dow(d)!==2||addDays(d,3)>a)d=addDays(d,-1);return d}
 
 /* ---------- model ---------- */
+const META={audit:null,est:{}};
+const FS={feed:'memuat',audit:'memuat',beta:'memuat',prob:'memuat',gen:{}};
+let AUD_HTML='';
+function leaveExample(){if(state.example){state=norm({});state.example=false}}
+const betaOf=(st,k)=>{const b=st.model.beta[k],pr=BETA[k];const same=pr&&b&&b.length===pr.length&&b.every((v,i)=>v===pr[i]);return(same&&META.est[k])?META.est[k]:b};
 function sigmaFor(st,id){const ov=st.sigma[id];if(ov!=null&&ov>0)return{v:ov,src:'manual'};
  const xs=st.releases.filter(r=>r.ind===id&&r.cons!=null&&r.act!=null).map(r=>r.act-r.cons);
  if(xs.length>=8){const m=xs.reduce((a,b)=>a+b,0)/xs.length;const v=Math.sqrt(xs.reduce((a,b)=>a+(b-m)**2,0)/(xs.length-1));if(v>0)return{v,src:'empiris n='+xs.length}}
@@ -194,7 +205,8 @@ function indices(st){const acc={G:{n:0,d:0,c:0},I:{n:0,d:0,c:0}};const rows=[];
   rows.push({...r,z,age,w,cat:d.c,sig:s});
   if(z!=null&&inW){const o=acc[d.c];o.n+=w*clamp(z,-3,3);o.d+=w;o.c++}}
  const f=o=>clamp(o.n/(o.d+st.set.k),-3,3);
- return{G:f(acc.G),I:f(acc.I),nG:acc.G.c,nI:acc.I.c,rows}}
+ const sG=f(acc.G),sI=f(acc.I),ac=st.actual,useA=st.set.gi!=='surprise'&&ac&&ac.G&&ac.I&&ac.G.v!=null&&ac.I.v!=null&&ac.G.n>=3&&ac.I.n>=3;
+ return useA?{G:ac.G.v,I:ac.I.v,nG:ac.G.n,nI:ac.I.n,src:'aktual',sG,sI,rows,ac}:{G:sG,I:sI,nG:acc.G.c,nI:acc.I.c,src:'surprise',sG,sI,rows,ac}}
 function cbStance(c){const em=(c.rate!=null&&c.imp!=null)?clamp((c.imp-c.rate)/.25,-4,4):0;
  const has=(c.rate!=null&&c.imp!=null)||!!c.txt||!!c.dec;
  return{st:clamp(.35*em+.35*(c.txt||0)+.3*(c.dec||0),-3,3),em,has,real:(c.rate!=null&&c.infl!=null)?c.rate-c.infl:null}}
@@ -231,7 +243,7 @@ function run(st){
   if(crisis){const v=PH[st.shock.ph||1][a.k]||0;parts={'Tabel krisis':v}}
   else if(a.hub==='ry'){parts={'Fed (P)':h.ry.P*P,'Growth (G)':h.ry.G*G,'Inflasi (I)':h.ry.I*I,'Stres (R)':h.ry.R*R,'Likuiditas (L)':h.ry.L*L};for(const k in parts)parts[k]*=m.ry}
   else if(a.hub==='usd'){parts={'Selisih Fed':h.usd.Pd*Pd,'Real yield':h.usd.RY*RY,'Stres (R)':h.usd.R*R,'Likuiditas (L)':h.usd.L*L,'Growth (G)':h.usd.G*G};for(const k in parts)parts[k]*=m.usd}
-  else{const b=st.model.beta[a.k];parts={'Growth (G)':b[0]*G,'Inflasi (I)':b[1]*I,'Fed (P)':b[2]*P,'Likuiditas (L)':b[3]*L,'Stres (R)':b[4]*R,'Real yield':b[5]*RY*m.ry,'USD':b[6]*USD*m.usd}}
+  else{const b=betaOf(st,a.k);parts={'Growth (G)':b[0]*G,'Inflasi (I)':b[1]*I,'Fed (P)':b[2]*P,'Likuiditas (L)':b[3]*L,'Stres (R)':b[4]*R,'Real yield':b[5]*RY*m.ry,'USD':b[6]*USD*m.usd}}
   const sv=(scn.v[a.k]||0)*inten;if(sv)parts['Skenario']=sv;
   score=Object.values(parts).reduce((x,y)=>x+y,0);
   let cot=null,cr=null,flag='';if(a.cot){cot=cotCalc(st,a.cot);if(cot.pct!=null){cr=(cot.pct-.5)*2*(a.inv?-1:1);
@@ -268,7 +280,7 @@ function interp(grid,z){const g=[...grid].sort((a,b)=>a.z-b.z);z=clamp(z,g[0].z,
  for(let i=0;i<g.length-1;i++){if(z<=g[i+1].z){const t=(z-g[i].z)/((g[i+1].z-g[i].z)||1);const m=k=>g[i][k]+t*(g[i+1][k]-g[i][k]);return{dn:m('p_dn'),fl:m('p_flat'),up:m('p_up')}}}
  const e=g[g.length-1];return{dn:e.p_dn,fl:e.p_flat,up:e.p_up}}
 function probCard(r){const pr=state.prob;
- if(!pr||!pr.assets)return `<section class="card"><h2>Probabilitas reaksi rilis terakhir</h2><p class="mute" style="margin:0">Belum ada probabilitas. Jalankan notebook L2, lalu impor prob_export.json di tab Model & data.</p></section>`;
+ if(!pr||!pr.assets)return `<section class="card"><h2>Probabilitas reaksi rilis terakhir</h2><p class="mute" style="margin:0">Belum ada probabilitas (${esc(FS.prob)}). Jalankan notebook L2, lalu unggah prob_export.json ke folder data di repo (terbaca otomatis), atau impor manual di tab Model &amp; data.</p></section>`;
  const rows=r.ix.rows.filter(x=>x.z!=null&&x.age>=0);if(!rows.length)return `<section class="card"><h2>Probabilitas reaksi rilis terakhir</h2><p class="mute" style="margin:0">Belum ada rilis dengan konsensus pada tanggal analisis.</p></section>`;
  const last=rows.reduce((m,x)=>x.date>m?x.date:m,'');const grp=rows.filter(x=>x.date===last);
  const mean=c=>{const a=grp.filter(x=>x.cat===c);return a.length?a.reduce((t,x)=>t+x.z,0)/a.length:null};
@@ -280,6 +292,42 @@ function probCard(r){const pr=state.prob;
  ${pr.synthetic?'<p class="note" style="color:var(--warn)">Probabilitas ini berasal dari data sintetis (uji kode), bukan pasar.</p>':''}
  <div class="tw"><table style="min-width:480px"><thead><tr><th>Aset</th><th></th><th class="n">Turun / datar / naik</th><th>Uji</th><th class="n">Skill</th></tr></thead><tbody>${lines||'<tr><td colspan="5" class="mute">Tidak ada grid untuk jenis rilis ini.</td></tr>'}</tbody></table></div>
  <p class="note">Hanya baris yang lulus uji walk-forward boleh dipakai sebagai probabilitas. Yang redup belum terbukti lebih baik daripada frekuensi historis. Skill adalah 1 − Brier model / Brier klimatologi.</p></section>`}
+
+/* ---------- sinyal fundamental BUY / SELL / HOLD ---------- */
+const SIG={th:.75,cv:.6,scn:.6,weak:.4,cons:.6};
+function consShare(){const w=state.set.win;const rs=state.releases.filter(x=>x.cons!=null&&x.act!=null&&diffDays(state.asof,x.date)>=0&&diffDays(state.asof,x.date)<=w);
+ const real=rs.filter(x=>x.note!=='feed'&&x.note!=='contoh').length;return{n:rs.length,real,share:rs.length?real/rs.length:0}}
+function sigGates(){const g=[],cs=consShare(),au=META.audit;
+ if(state.example)g.push('masih memakai data contoh');
+ if(!au)g.push('audit data belum tersedia ('+FS.audit+')');else if(au.fail>0)g.push(`audit data: ${au.fail} pemeriksaan GAGAL`);
+ if(indices(state).src==='surprise'&&cs.share<SIG.cons)g.push(`konsensus pasar asli baru ${cs.real} dari ${cs.n} rilis dalam ${state.set.win} hari (butuh ≥${Math.round(SIG.cons*100)}%)`);
+ return g}
+function signalFor(a,r,gates){if(a.hub)return null;
+ const s=a.score,abs=Math.abs(s),dir=s>0?'BUY':'SELL',why=[];let conv=a.conv;
+ if(abs<SIG.weak)return{act:'HOLD',lean:'',why:[`skor ${sg(s)} lemah (di bawah ${SIG.weak})`]};
+ if(META.est[a.k]==null){const bi=META.betaInfo&&META.betaInfo.assets&&META.betaInfo.assets[a.k];
+  if(!bi||bi.r2_prior==null){conv*=.85;why.push('beta masih prior dan belum pernah diuji')}
+  else if(bi.r2_prior<=.01)why.push('beta prior tidak punya daya prediksi pada uji walk-forward')}
+ if(abs<SIG.th)why.push(`skor ${sg(s)} di bawah ambang ${SIG.th}`);
+ if(conv<SIG.cv)why.push(`keyakinan ${Math.round(conv*100)}% di bawah ${Math.round(SIG.cv*100)}%`);
+ const sc=(a.parts['Skenario']||0)*Math.sign(s);if(sc/abs>SIG.scn)why.push(`${Math.round(sc/abs*100)}% skor berasal dari skenario manual, bukan data`);
+ if(r.crisis)why.push('mode krisis: skor dari tabel fase, bukan faktor');
+ if(a.flag==='ramai searah')why.push('posisi spekulan sudah ramai searah (risiko squeeze)');
+ const all=[...gates.map(g=>'Data: '+g),...why];
+ return all.length?{act:'HOLD',lean:dir,why:all}:{act:dir,lean:'',why:[]}}
+
+function sigTag(x){if(!x)return '<span class="mute">–</span>';
+ if(x.act==='BUY')return '<span class="tag p">BUY</span>';if(x.act==='SELL')return '<span class="tag n">SELL</span>';
+ return `<span class="tag z">HOLD${x.lean?(x.lean==='BUY'?' ↗':' ↘'):''}</span>`}
+function sigCard(sigs,gates,r){const all=Object.entries(sigs).filter(([,v])=>v);const nb=all.filter(([,v])=>v.act==='BUY'),ns=all.filter(([,v])=>v.act==='SELL');
+ const nm=k=>r.out.find(a=>a.k===k).n;const lean=all.filter(([,v])=>v.act==='HOLD'&&v.lean);
+ const head=gates.length?'Aksi ditahan: data belum layak':(nb.length+ns.length?`${nb.length} BUY · ${ns.length} SELL`:'Tidak ada aset yang memenuhi semua syarat');
+ const be=Object.keys(META.est).length;
+ return `<section class="card"><h2>Sinyal fundamental</h2><p style="margin:0 0 6px;font-weight:600">${head}</p>
+ ${gates.length?`<ul class="clean">${gates.map(g=>`<li class="chk"><span>${esc(g)}</span></li>`).join('')}</ul>`:''}
+ ${nb.length||ns.length?`<p class="note" style="margin-top:6px">BUY: ${nb.map(([k])=>esc(nm(k))).join(', ')||'–'}. SELL: ${ns.map(([k])=>esc(nm(k))).join(', ')||'–'}.</p>`:''}
+ ${lean.length?`<p class="note">Condong tapi ditahan: ${lean.map(([k,v])=>esc(nm(k))+(v.lean==='BUY'?' ↗':' ↘')).join(', ')}. Ketuk baris aset di matriks untuk melihat alasannya.</p>`:''}
+ <p class="note">Ini bias arah fundamental untuk horizon mingguan sampai bulanan, bukan titik entry (itu tugas analisis teknikal nanti) dan bukan saran investasi. Aksi hanya keluar jika skor ≥ ${SIG.th}σ, keyakinan ≥ ${Math.round(SIG.cv*100)}%, audit data bersih${indices(state).src==='surprise'?`, dan konsensus asli ≥ ${Math.round(SIG.cons*100)}%`:' (G dan I memakai kondisi aktual, jadi konsensus tidak disyaratkan)'}. Ambang ini keputusan desain yang belum di-backtest. ${be?`Beta: ${be} aset dari estimasi, sisanya prior.`:`Beta: semua masih prior (estimasi: ${esc(FS.beta)}).`}</p></section>`}
 function viewDash(){const r=run(state);const f=(v)=>`<span class="${v>.25?'pos':v<-.25?'neg':'mute'}">${sg(v)}</span>`;
  const nh=r.out.filter(a=>!a.hub),sorted=[...nh].sort((a,b)=>b.score-a.score);
  const risk=['SPX','NDX','EEM','BTC','AUDUSD','IHSG'].map(k=>r.out.find(a=>a.k===k).score),rk=risk.reduce((a,b)=>a+b,0)/risk.length;
@@ -287,7 +335,7 @@ function viewDash(){const r=run(state);const f=(v)=>`<span class="${v>.25?'pos':
  const dirn=rk>.3&&hv<0?'Modal cenderung ke aset berisiko.':rk<-.3&&hv>.3?'Modal cenderung ke safe haven (USD, emas, JPY).':'Arah modal campuran, tidak ada sisi yang dominan.';
  const list=a=>a.map(x=>`<li class="chk"><span>${esc(x.n)}</span><b class="${x.score>=0?'pos':'neg'}">${sg(x.score)}</b></li>`).join('');
  const warn=[];const noc=state.releases.filter(x=>x.cons==null).length;
- if(r.ix.nG+r.ix.nI<4)warn.push(`Hanya ${r.ix.nG+r.ix.nI} rilis dengan konsensus dalam ${state.set.win} hari. Indeks surprise belum stabil.`);
+ if(r.ix.src==='surprise'&&r.ix.nG+r.ix.nI<4)warn.push(`Hanya ${r.ix.nG+r.ix.nI} rilis dengan konsensus dalam ${state.set.win} hari. Indeks surprise belum stabil.`);
  if(noc)warn.push(`${noc} rilis tanpa konsensus tidak ikut dihitung.`);
  if(!r.cbs.FED.has)warn.push('Data Fed belum diisi, faktor kebijakan (P) dianggap netral.');
  if(!r.lq.ok)warn.push('Net liquidity belum lengkap, faktor likuiditas (L) dianggap 0.');
@@ -296,24 +344,26 @@ function viewDash(){const r=run(state);const f=(v)=>`<span class="${v>.25?'pos':
  if(cs.length)warn.push('COT '+cs.join(', ')+': riwayat kurang dari 10 laporan dan rentang manual belum diisi.');
  const dflt=IND.filter(d=>state.releases.some(x=>x.ind===d.id)&&sigmaFor(state,d.id).src==='awal').length;
  if(dflt)warn.push(`${dflt} indikator masih memakai σ awal bawaan. Kalibrasi di tab Model & data.`);
+ const gates=sigGates();const sigs={};r.out.forEach(a=>{sigs[a.k]=signalFor(a,r,gates)});
  const rowsHtml=r.out.map(a=>{const[l,c]=lab(a.score);const open=ui.open===a.k;
   const cot=a.cot&&a.cot.pct!=null?`<span class="tag ${a.flag==='ramai searah'?'w':'z'}">${a.flag||'pct '+Math.round(a.cot.pct*100)}</span>`:'<span class="mute">–</span>';
   let bd='';if(open){const mx=Math.max(1,...Object.values(a.parts).map(Math.abs));
-   bd=`<tr><td colspan="5"><div class="grid" style="gap:6px 24px">${Object.entries(a.parts).map(([k,v])=>`<div class="bk"><span>${esc(k)}</span>${bar(v,mx)}<b class="${v>=0?'pos':'neg'}" style="font-family:var(--f-num);font-weight:500;text-align:right">${sg(v)}</b></div>`).join('')}</div>
-   <p class="note">${r.crisis?'Mode krisis: logika normal dimatikan, skor dari tabel fase.':`Rantai: Fed ${sg(r.P)} → real yield ${sg(r.RY)} → USD ${sg(r.USD)} → ${esc(a.n)} ${sg(a.score)}. Pengali rezim real yield ${fx(state.model.mult[r.q].ry,1)}, USD ${fx(state.model.mult[r.q].usd,1)}.`}</p></td></tr>`}
-  return `<tr class="clk" data-act="open" data-k="${a.k}"><td>${esc(a.n)}</td><td class="n" style="min-width:150px"><div style="display:grid;grid-template-columns:48px 1fr;gap:8px;align-items:center"><b style="font-weight:500">${sg(a.score)}</b>${bar(a.score)}</div></td><td><span class="tag ${c}">${l}</span></td><td>${cot}</td><td class="n">${Math.round(a.conv*100)}%</td></tr>${bd}`}).join('');
+   bd=`<tr><td colspan="6"><div class="grid" style="gap:6px 24px">${Object.entries(a.parts).map(([k,v])=>`<div class="bk"><span>${esc(k)}</span>${bar(v,mx)}<b class="${v>=0?'pos':'neg'}" style="font-family:var(--f-num);font-weight:500;text-align:right">${sg(v)}</b></div>`).join('')}</div>
+   <p class="note"><b>Sinyal:</b> ${sigs[a.k]?(sigs[a.k].why.length?esc(sigs[a.k].why.join('; ')):'semua syarat terpenuhi'):'hub, bukan instrumen'}</p><p class="note">${r.crisis?'Mode krisis: logika normal dimatikan, skor dari tabel fase.':`Rantai: Fed ${sg(r.P)} → real yield ${sg(r.RY)} → USD ${sg(r.USD)} → ${esc(a.n)} ${sg(a.score)}. Pengali rezim real yield ${fx(state.model.mult[r.q].ry,1)}, USD ${fx(state.model.mult[r.q].usd,1)}.`}</p></td></tr>`}
+  return `<tr class="clk" data-act="open" data-k="${a.k}"><td>${esc(a.n)}</td><td class="n" style="min-width:150px"><div style="display:grid;grid-template-columns:48px 1fr;gap:8px;align-items:center"><b style="font-weight:500">${sg(a.score)}</b>${bar(a.score)}</div></td><td><span class="tag ${c}">${l}</span></td><td>${cot}</td><td class="n">${Math.round(a.conv*100)}%</td><td>${sigTag(sigs[a.k])}</td></tr>${bd}`}).join('');
  return `${exBanner()}
  <section class="card mode ${r.sh.mode.toLowerCase()}"><h2>Mode pasar</h2><div class="row" style="align-items:baseline;gap:6px 18px"><span class="big">${r.sh.mode}</span><span class="mute">${r.sh.n} dari 4 pemicu menyala${r.crisis?`. ${PHN[state.shock.ph||1]}`:''}${r.scn.n!=='Tidak ada'?`. Skenario: ${esc(r.scn.n)}`:''}</span></div></section>
  <div class="grid">
   <section class="card"><h2>Rezim fundamental</h2><div class="big" style="font-size:16px;font-family:var(--f-ui);font-weight:600">${QUAD[r.q]}</div>
-   <dl class="kv" style="margin-top:10px"><dt>Growth (G)</dt><dd>${f(r.ix.G)} <span class="mute">n=${r.ix.nG}</span></dd><dt>Inflasi (I)</dt><dd>${f(r.ix.I)} <span class="mute">n=${r.ix.nI}</span></dd><dt>Fed (P)</dt><dd>${f(r.P)}</dd><dt>Likuiditas (L)</dt><dd>${f(r.L)}</dd><dt>Stres (R)</dt><dd>${fx(r.R)}</dd></dl>
-   <p class="note">G dan I adalah indeks surprise berbobot waktu (z-score, paruh waktu ${state.set.hl} hari). Nilai di bawah 0,25 dianggap lemah.</p></section>
+   <dl class="kv" style="margin-top:10px"><dt>Growth (G)</dt><dd>${f(r.ix.G)} <span class="mute">n=${r.ix.nG} ${r.ix.src}</span></dd><dt>Inflasi (I)</dt><dd>${f(r.ix.I)} <span class="mute">n=${r.ix.nI}</span></dd><dt>Fed (P)</dt><dd>${f(r.P)}</dd><dt>Likuiditas (L)</dt><dd>${f(r.L)}</dd><dt>Stres (R)</dt><dd>${fx(r.R)}</dd></dl>
+   <p class="note">${r.ix.src==='aktual'?`G dan I dihitung dari <b>kondisi aktual</b>: tren data FRED (3 bulan) terhadap riwayat 10 tahunnya sendiri, rata-rata ${r.ix.nG} komponen growth dan ${r.ix.nI} komponen inflasi. Tidak memakai konsensus. Indeks surprise (${sg(r.ix.sG)} / ${sg(r.ix.sI)}) hanya pembanding.`:`G dan I adalah indeks surprise berbobot waktu (z-score, paruh waktu ${state.set.hl} hari).`} Nilai di bawah 0,25 dianggap lemah.</p></section>
   <section class="card"><h2>Arah aliran modal</h2><p style="margin:0 0 8px;font-weight:500">${dirn}</p>
    <div class="grid" style="gap:10px"><div><div class="lbl">Tekanan naik</div><ul class="clean">${list(sorted.slice(0,3))}</ul></div><div><div class="lbl">Tekanan turun</div><ul class="clean">${list(sorted.slice(-3).reverse())}</ul></div></div>
    <p class="note">Risk appetite ${sg(rk)} · safe haven ${sg(hv)}</p></section>
  </div>
+ ${sigCard(sigs,gates,r)}
  ${probCard(r)}
- <section class="card"><h2>Matriks dampak antar aset</h2><div class="tw"><table style="min-width:540px"><thead><tr><th>Aset</th><th>Skor (σ)</th><th>Arah</th><th>COT</th><th class="n">Keyakinan</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>
+ <section class="card"><h2>Matriks dampak antar aset</h2><div class="tw"><table style="min-width:600px"><thead><tr><th>Aset</th><th>Skor (σ)</th><th>Arah</th><th>COT</th><th class="n">Keyakinan</th><th>Sinyal</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>
   <p class="note">Ketuk baris untuk melihat kontribusi tiap faktor. Skor adalah tekanan arah relatif (satuan σ), bukan target harga. Keyakinan adalah heuristik kelengkapan data, bukan probabilitas.</p></section>
  ${warn.length?`<section class="card"><h2>Catatan kualitas data</h2><ul class="clean">${warn.map(w=>`<li>${esc(w)}</li>`).join('')}</ul></section>`:''}`}
 
@@ -328,7 +378,7 @@ function formRel(){const d=draft.rel;
  <textarea data-b="~csvRel" data-t="s" aria-label="CSV rilis" placeholder="2026-09-11,cpi_core,0.3,0.3">${esc(draft.csvRel)}</textarea><div style="margin-top:6px"><button class="btn ghost sm" data-act="csvrel">Impor baris</button></div></details></section>`}
 function outRel(){const ix=indices(state);const rows=[...ix.rows].sort((a,b)=>a.date<b.date?1:-1);
  const body=rows.map(r=>{const d=IND_BY[r.ind];const z=r.z;return `<tr><td class="n">${r.date}</td><td>${esc(d.n)}</td><td><span class="tag z">${d.c==='I'?'inflasi':'growth'}</span></td><td class="n">${fx(r.act,2)}</td><td class="n">${r.cons==null?'<span class="mute">kosong</span>':fx(r.cons,2)}</td><td class="n ${z==null?'mute':z>0?'pos':'neg'}">${sg(z)}</td><td class="n mute">${r.w?fx(r.w,2):'di luar jendela'}</td><td><button class="btn del sm" data-act="delrel" data-id="${r.id}" aria-label="Hapus">Hapus</button></td></tr>`}).join('');
- return `<section class="card"><h2>Indeks surprise</h2><div class="row" style="gap:24px"><div><div class="lbl">Growth (G)</div><div class="big ${ix.G>.25?'pos':ix.G<-.25?'neg':''}">${sg(ix.G)}</div><div class="note">${ix.nG} rilis aktif</div></div><div><div class="lbl">Inflasi (I)</div><div class="big ${ix.I>.25?'pos':ix.I<-.25?'neg':''}">${sg(ix.I)}</div><div class="note">${ix.nI} rilis aktif</div></div></div>
+ return `<section class="card"><h2>Indeks surprise</h2><div class="row" style="gap:24px"><div><div class="lbl">Growth (G)</div><div class="big ${ix.sG>.25?'pos':ix.sG<-.25?'neg':''}">${sg(ix.sG)}</div><div class="note">${ix.nG} rilis aktif</div></div><div><div class="lbl">Inflasi (I)</div><div class="big ${ix.sI>.25?'pos':ix.sI<-.25?'neg':''}">${sg(ix.sI)}</div><div class="note">${ix.nI} rilis aktif</div></div></div>
  <p class="note">Surprise z = tanda × (actual − konsensus) / σ. Tanda dibuat searah: positif berarti lebih kuat (growth) atau lebih panas (inflasi). Pengangguran dan klaim dibalik tandanya.</p></section>
  <section class="card"><h2>Riwayat rilis (${rows.length})</h2><div class="tw"><table style="min-width:620px"><thead><tr><th class="n">Tanggal</th><th>Indikator</th><th>Jenis</th><th class="n">Actual</th><th class="n">Konsensus</th><th class="n">z</th><th class="n">Bobot</th><th></th></tr></thead><tbody>${body||'<tr><td colspan="8" class="mute">Belum ada rilis. Tambahkan lewat form di atas.</td></tr>'}</tbody></table></div></section>`}
 
@@ -384,7 +434,7 @@ function formModel(){const m=state.model,A=ASSETS.filter(a=>!a.hub);
  const hub=(g,ks)=>ks.map(k=>F(k,IN(`model.hub.${g}.${k}`,{c:'s',al:g+' '+k}))).join('');
  const mult=Object.keys(QUAD).map(q=>`<tr><td>${QUAD[q]}</td><td>${IN(`model.mult.${q}.ry`,{c:'s',al:q+' ry'})}</td><td>${IN(`model.mult.${q}.usd`,{c:'s',al:q+' usd'})}</td></tr>`).join('');
  return `${exBanner()}
- <section class="card"><h2>Parameter waktu</h2><div class="row">${F('Paruh waktu bobot (hari)',IN('set.hl',{al:'Paruh waktu'}))}${F('Jendela rilis (hari)',IN('set.win',{al:'Jendela'}))}${F('Shrinkage k',IN('set.k',{al:'Shrinkage'}))}</div>
+ <section class="card"><h2>Parameter waktu</h2><div class="row">${F('Paruh waktu bobot (hari)',IN('set.hl',{al:'Paruh waktu'}))}${F('Jendela rilis (hari)',IN('set.win',{al:'Jendela'}))}${F('Shrinkage k',IN('set.k',{al:'Shrinkage'}))}${F('Sumber G dan I',SEL('set.gi',[['aktual','Kondisi aktual (tren FRED)'],['surprise','Surprise vs konsensus']],{full:true,al:'Sumber G dan I'}))}</div>
  <p class="note">Indeks = Σ(bobot × z) / (Σ bobot + k). Nilai k lebih besar menahan indeks agar tidak melonjak karena satu rilis.</p></section>
  <section class="card"><h2>Beta aset terhadap faktor</h2><p class="note" style="margin:0 0 8px">Ini prior ekonomi awal, belum hasil estimasi dari data Anda. Ganti dengan beta dari regresi rolling saat layer L2 selesai.</p>
  <div class="tw"><table style="min-width:560px"><thead><tr><th>Aset</th>${FACT.map(f=>`<th class="n">${f}</th>`).join('')}</tr></thead><tbody>${bt}</tbody></table></div></section>
@@ -410,25 +460,26 @@ function renderAll(){renderTabs();renderMain()}
 function csvRows(t){return t.split(/\r?\n/).map(l=>l.trim()).filter(Boolean).map(l=>l.split(/[,;\t]/).map(x=>x.trim()))}
 function mkid(){return 'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
 document.addEventListener('change',e=>{const el=e.target.closest('[data-b]');if(!el)return;let v=el.value;
- if(el.dataset.t==='n')v=num(v);sp(el.dataset.b,v);
+ if(el.dataset.t==='n')v=num(v);if(el.dataset.b[0]!=='~')leaveExample();sp(el.dataset.b,v);
  if(el.dataset.b[0]!=='~'){if(el.dataset.b==='asof'&&!validDate(v))return;persist()}
  if(el.dataset.full||el.dataset.b==='shock.scn'||el.dataset.b==='~cotKey'){renderMain()}else{refreshOut();if(ui.tab==='shock'){const n=$('#scnnote');if(n)n.textContent=(SCEN[state.shock.scn]||{}).t||'Overlay menambah skor di atas model, bukan menggantinya.'}}});
 document.addEventListener('click',async e=>{const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;
+ if(a==='reload'){FS.gen={};refreshAll();return}
  if(a==='tab'){ui.tab=b.dataset.k;ui.msg='';renderAll();return}
  if(a==='open'){ui.open=ui.open===b.dataset.k?null:b.dataset.k;renderMain();return}
  if(a==='clearex'){state=norm({});state.example=false;persist();renderAll();return}
  if(a==='addrel'){const d=draft.rel;ui.msg='';if(!validDate(d.date))ui.msg='Isi tanggal rilis.';else if(d.act==null)ui.msg='Isi nilai actual.';else if(d.cons==null)ui.msg='Konsensus kosong: rilis disimpan tetapi belum ikut dihitung.';
-  if(validDate(d.date)&&d.act!=null){state.releases.push({id:mkid(),date:d.date,ind:d.ind,act:d.act,cons:d.cons,prev:null,note:''});d.act=null;d.cons=null;persist()}
+  if(validDate(d.date)&&d.act!=null){leaveExample();state.releases.push({id:mkid(),date:d.date,ind:d.ind,act:d.act,cons:d.cons,prev:null,note:''});d.act=null;d.cons=null;persist()}
   renderMain();return}
  if(a==='delrel'){state.releases=state.releases.filter(r=>r.id!==b.dataset.id);persist();refreshOut();return}
- if(a==='csvrel'){let ok=0,bad=0;for(const c of csvRows(draft.csvRel)){const[d,id,ac,co]=c;const A=num(ac),C=num(co);if(validDate(d)&&IND_BY[id]&&A!=null){state.releases.push({id:mkid(),date:d,ind:id,act:A,cons:C,prev:null,note:''});ok++}else bad++}
+ if(a==='csvrel'){if(draft.csvRel.trim())leaveExample();let ok=0,bad=0;for(const c of csvRows(draft.csvRel)){const[d,id,ac,co]=c;const A=num(ac),C=num(co);if(validDate(d)&&IND_BY[id]&&A!=null){state.releases.push({id:mkid(),date:d,ind:id,act:A,cons:C,prev:null,note:''});ok++}else bad++}
   ui.msg=`${ok} baris masuk, ${bad} dilewati.`;draft.csvRel='';if(ok)persist();renderMain();return}
  if(a==='addcot'){const d=draft.cot,c=state.cot[draft.cotKey];ui.msg='';
   if(!validDate(d.d)||d.net==null||!(d.oi>0))ui.msg='Isi tanggal posisi, net spekulan, dan open interest.';
-  else{if(dow(d.d)!==2)ui.msg='Perhatian: tanggal posisi COT biasanya hari Selasa.';c.rows=c.rows.filter(r=>r.d!==d.d);c.rows.push({d:d.d,net:d.net,oi:d.oi});d.net=null;d.oi=null;d.d=addDays(d.d,7);persist()}
+  else{if(dow(d.d)!==2)ui.msg='Perhatian: tanggal posisi COT biasanya hari Selasa.';leaveExample();const c2=state.cot[draft.cotKey];c2.rows=c2.rows.filter(r=>r.d!==d.d);c2.rows.push({d:d.d,net:d.net,oi:d.oi});d.net=null;d.oi=null;d.d=addDays(d.d,7);persist()}
   renderMain();return}
  if(a==='delcot'){const c=state.cot[draft.cotKey];c.rows=c.rows.filter(r=>r.d!==b.dataset.d);persist();refreshOut();return}
- if(a==='csvcot'){const c=state.cot[draft.cotKey];let ok=0,bad=0;for(const r of csvRows(draft.csvCot)){const[d,n,o]=r;const N=num(n),O=num(o);if(validDate(d)&&N!=null&&O>0){c.rows=c.rows.filter(x=>x.d!==d);c.rows.push({d,net:N,oi:O});ok++}else bad++}
+ if(a==='csvcot'){if(draft.csvCot.trim())leaveExample();const c=state.cot[draft.cotKey];let ok=0,bad=0;for(const r of csvRows(draft.csvCot)){const[d,n,o]=r;const N=num(n),O=num(o);if(validDate(d)&&N!=null&&O>0){c.rows=c.rows.filter(x=>x.d!==d);c.rows.push({d,net:N,oi:O});ok++}else bad++}
   ui.msg=`${ok} baris masuk, ${bad} dilewati.`;draft.csvCot='';if(ok)persist();renderMain();return}
  if(a==='importprob'){try{const j=JSON.parse(draft.impProb);if(!j.assets||typeof j.assets!=='object')throw 0;state.prob={generated:j.generated,horizon_min:j.horizon_min,theta_k:j.theta_k,synthetic:!!j.synthetic,assets:j.assets};persist();ui.msg='Probabilitas diimpor.';draft.impProb=''}catch(x){ui.msg='JSON tidak valid. Pakai file prob_export.json dari notebook L2.'}renderMain();return}
  if(a==='clearprob'){state.prob=null;persist();ui.msg='';renderMain();return}
@@ -446,25 +497,44 @@ draft.rel.date=state.asof;renderAll();setStatus('lokal');
  setStatus('db')}catch(e){setStatus('lokal')}})();
 
 /* ---------- feed otomatis (GitHub Actions -> data/feed.json) ---------- */
-async function applyFeed(){try{const r=await fetch('data/feed.json?'+Date.now(),{cache:'no-store'});if(!r.ok)return;const f=await r.json();if(!f||!f.generated)return;
+async function applyFeed(){try{const r=await fetch('data/feed.json?'+Date.now(),{cache:'no-store'});if(!r.ok){FS.feed='gagal dimuat, HTTP '+r.status;drawStatus();return}const f=await r.json();if(!f||!f.generated){FS.feed='belum ada data, menunggu run workflow pertama';drawStatus();return}
+ if(FS.gen.feed===f.generated){FS.feed='ok '+f.generated.slice(0,16).replace('T',' ')+' UTC';drawStatus();return}FS.gen.feed=f.generated;
  if(state.example){state=norm(defaults());state.example=false}
  for(const x of f.releases||[]){if(!IND_BY[x.ind]||x.act==null||!validDate(x.date))continue;
   const o=state.releases.find(q=>q.ind===x.ind&&q.date===x.date);
-  if(!o)state.releases.push({id:mkid(),date:x.date,ind:x.ind,act:x.act,cons:x.cons,prev:null,note:'feed'});
-  else if(o.note==='feed'){o.act=x.act;if(x.cons!=null)o.cons=x.cons}}
+  if(!o)state.releases.push({id:mkid(),date:x.date,ind:x.ind,act:x.act,cons:x.cons,prev:null,note:x.src==='file'?'feed+k':'feed'});
+  else if(o.note==='feed'||o.note==='feed+k'){o.act=x.act;if(x.cons!=null)o.cons=x.cons;if(x.src==='file')o.note='feed+k'}}
+ if(f.actual)state.actual=f.actual;
  for(const k in f.shock||{})if(f.shock[k]!=null&&k in state.shock)state.shock[k]=f.shock[k];
  for(const k in f.liq||{})if(f.liq[k]!=null)state.liq[k]=f.liq[k];
- for(const k in f.cb||{})if(state.cb[k]&&f.cb[k].rate!=null)state.cb[k].rate=f.cb[k].rate;
+ for(const k in f.cb||{})if(state.cb[k])for(const q of['rate','imp','infl'])if(f.cb[k][q]!=null)state.cb[k][q]=f.cb[k][q];
  for(const k in f.cot||{})if(state.cot[k])for(const x of f.cot[k]){state.cot[k].rows=state.cot[k].rows.filter(q=>q.d!==x.d);state.cot[k].rows.push({d:x.d,net:x.net,oi:x.oi})}
  state.asof=todayStr();persist();renderAll();
- $('#savest').textContent='feed '+f.generated.slice(0,16).replace('T',' ')+' UTC · konsensus = proxy (rata-rata rilis sebelumnya)'}catch(e){}}
-applyFeed();
+ FS.feed='ok '+f.generated.slice(0,16).replace('T',' ')+' UTC';drawStatus()}catch(e){FS.feed='error: '+(e&&e.message||e);drawStatus()}}
 
 /* ---------- panel audit (data/audit.json) ---------- */
-async function showAudit(){try{const r=await fetch('data/audit.json?'+Date.now(),{cache:'no-store'});if(!r.ok)return;const a=await r.json();if(!a||!a.generated)return;
- const c=a.counts||{},bad=(c.fail||0)>0,w=(c.warn||0)>0;const col=bad?'#b3261e':w?'var(--warn)':'#1e7a46';
+async function showAudit(){try{const r=await fetch('data/audit.json?'+Date.now(),{cache:'no-store'});if(!r.ok){FS.audit='gagal dimuat, HTTP '+r.status;drawStatus();return}const a=await r.json();if(!a||!a.generated){FS.audit='belum ada hasil, menunggu run workflow';drawStatus();return}
+ const first=!META.audit;META.audit=a.counts||{};FS.audit='ok '+a.generated.slice(0,16).replace('T',' ')+' UTC';if(first&&ui.tab==='dash')renderMain();const c=a.counts||{},bad=(c.fail||0)>0,w=(c.warn||0)>0;const col=bad?'#b3261e':w?'var(--warn)':'#1e7a46';
  const ic={fail:'GAGAL',warn:'CEK',ok:'OK'};
  const rows=(a.checks||[]).filter(x=>x.level!=='ok').concat((a.checks||[]).filter(x=>x.level==='ok')).map(x=>`<div style="display:flex;gap:8px;padding:5px 0;border-top:1px solid var(--line,#8884)"><b style="min-width:46px;color:${x.level==='fail'?'#b3261e':x.level==='warn'?'#9a6700':'#1e7a46'}">${ic[x.level]}</b><span style="flex:1"><i>${esc(x.grp)}</i> ${esc(x.msg)}${x.link?` <a href="${esc(x.link)}" target="_blank" rel="noopener">sumber</a>`:''}</span></div>`).join('');
- $('#audit').innerHTML=`<details style="border:1px solid ${col};border-radius:6px;padding:8px 12px;margin-top:10px"><summary style="cursor:pointer;font-weight:600;color:${col}">Audit data: ${c.ok||0} OK · ${c.warn||0} cek · ${c.fail||0} gagal <span style="font-weight:400;opacity:.7">(${esc(a.generated.slice(0,16).replace('T',' '))} UTC)</span></summary><div style="font-size:.9em;margin-top:6px">${rows}</div></details>`}catch(e){}}
-showAudit();
+AUD_HTML=`<details style="border:1px solid ${col};border-radius:6px;padding:8px 12px;margin-top:10px"><summary style="cursor:pointer;font-weight:600;color:${col}">Audit data: ${c.ok||0} OK · ${c.warn||0} cek · ${c.fail||0} gagal <span style="font-weight:400;opacity:.7">(${esc(a.generated.slice(0,16).replace('T',' '))} UTC)</span></summary><div style="font-size:.9em;margin-top:6px">${rows}</div></details>`;drawStatus()}catch(e){FS.audit='error: '+(e&&e.message||e);drawStatus()}}
+
+/* ---------- beta hasil estimasi (data/betas.json) ---------- */
+async function applyBetas(){try{const r=await fetch('data/betas.json?'+Date.now(),{cache:'no-store'});if(!r.ok){FS.beta='gagal dimuat, HTTP '+r.status;drawStatus();return}const j=await r.json();if(!j||!j.generated||!j.assets){FS.beta='belum dihitung (menunggu run mingguan)';drawStatus();return}
+ for(const k in j.assets){const a=j.assets[k];if(a.use&&a.est&&a.est.length===7)META.est[k]=a.est}
+ META.betaInfo=j;FS.beta='ok '+j.generated.slice(0,10);drawStatus();if(FS.gen.beta!==j.generated){FS.gen.beta=j.generated;if(ui.tab==='dash'||ui.tab==='model')renderMain()}}catch(e){FS.beta='error: '+(e&&e.message||e);drawStatus()}}
+
+/* ---------- probabilitas L2 otomatis (data/prob_export.json) ---------- */
+async function applyProb(){try{const r=await fetch('data/prob_export.json?'+Date.now(),{cache:'no-store'});if(!r.ok){FS.prob='file belum ada di repo';drawStatus();return}const j=await r.json();
+ if(!j||!j.assets||!Object.keys(j.assets).length){FS.prob='file ada tapi kosong, jalankan ulang L2';drawStatus();return}
+ FS.prob='ok '+String(j.generated||'').slice(0,16);
+ if(!state.prob||state.prob.generated!==j.generated){state.prob={generated:j.generated,horizon_min:j.horizon_min,theta_k:j.theta_k,synthetic:!!j.synthetic,assets:j.assets};persist();renderAll()}drawStatus()}catch(e){FS.prob='error: '+(e&&e.message||e);drawStatus()}}
+/* ---------- baris status sumber otomatis + muat ulang berkala ---------- */
+function drawStatus(){const el=$('#audit');if(!el)return;const ok=v=>String(v).startsWith('ok');
+ const it=(n,v)=>`<span style="white-space:nowrap"><b style="color:${ok(v)?'#1e7a46':'#9a6700'}">${ok(v)?'✓':'!'}</b> ${n}: ${esc(v)}</span>`;
+ el.innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center;font-size:.85em;margin-top:10px;opacity:.9">${it('feed',FS.feed)}${it('audit',FS.audit)}${it('beta',FS.beta)}${it('probabilitas',FS.prob)}<button class="btn ghost sm" data-act="reload">Muat ulang</button></div>${AUD_HTML}`}
+function refreshAll(){applyFeed();showAudit();applyBetas();applyProb()}
+drawStatus();refreshAll();setInterval(refreshAll,600000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshAll()});
 </script>
+</body></html>

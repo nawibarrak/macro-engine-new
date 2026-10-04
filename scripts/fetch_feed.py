@@ -24,7 +24,8 @@ IND = {
  "ahe": ("CES0500000003", "pct", 1, 3, 1.5), "nfp": ("PAYEMS", "diff", 1, 3, 1500),
  "unemp": ("UNRATE", "lvl", 1, 3, 15), "claims": ("ICSA", "lvl", 1e-3, 4, 1500),
  "jolts": ("JTSJOL", "lvl", 1e-3, 3, 20), "retail": ("RSAFS", "pct", 1, 3, 5.0),
- "ip": ("INDPRO", "pct", 1, 3, 3.0), "gdp": ("A191RL1Q225SBEA", "lvl", 1, 3, 15)}
+ "ip": ("INDPRO", "pct", 1, 3, 3.0), "empire": ("GACDISA066MSFRBNY", "lvl", 1, 3, 80),
+ "philly": ("GACDFSA066MSFRBPHI", "lvl", 1, 3, 80), "gdp": ("A191RL1Q225SBEA", "lvl", 1, 3, 15)}
 
 def vintages(sid, start):
     """Semua versi nilai (ALFRED): obs -> [(rs, re, nilai)], untuk 'nilai yang diketahui pada hari D'."""
@@ -115,9 +116,57 @@ def market():
     except Exception as e: log.append(f"GAGAL likuiditas: {e}")
     try:
         cb["FED"] = {"rate": last("DFEDTARU")[-1][1]}
+        try:   # proksi ekspektasi pasar: yield 2 tahun (BUKAN harga futures FedWatch)
+            cb["FED"]["imp"] = last("DGS2")[-1][1]
+            cpi = fred("CPIAUCSL", observation_start=(TODAY - dt.timedelta(days=500)).isoformat())
+            cb["FED"]["infl"] = round((cpi[-1][1] / cpi[-13][1] - 1) * 100, 2)
+        except Exception as e: log.append(f"imp/infl Fed tidak tersedia: {e}")
         cb["ECB"] = {"rate": last("ECBDFR")[-1][1]}
     except Exception as e: log.append(f"GAGAL bank sentral: {e}")
     return shock, liq, cb
+
+
+def actual_conditions():
+    """G dan I dari KONDISI AKTUAL (tren data FRED vs riwayat 10 tahun sendiri), tanpa konsensus."""
+    import pandas as pd
+    def ser(sid, start="2008-01-01"):
+        d = fred(sid, observation_start=start)
+        return pd.Series({pd.Timestamp(a): b for a, b, _ in d}).sort_index()
+    def zlast(m, n):
+        m = m.dropna()
+        if len(m) < max(24, n // 4): return None
+        t = m.tail(n); sd = t.std()
+        return None if not sd else float((t.iloc[-1] - t.mean()) / sd)
+    ann3 = lambda x: ((x / x.shift(3)) ** 4 - 1) * 100
+    accel = lambda x: ann3(x) - (x / x.shift(12) - 1) * 100
+    spec = {  # nama: (grup, seri, fungsi metrik, jendela, tanda, umur_maks_hari)
+        "nfp 3b rata2":   ("G", "PAYEMS", lambda x: x.diff().rolling(3).mean(), 120, 1, 75),
+        "pengangguran":   ("G", "UNRATE", lambda x: x - x.shift(3), 120, -1, 75),
+        "klaim 26 mgg":   ("G", "ICSA", lambda x: x.rolling(4).mean() / x.rolling(4).mean().shift(26) - 1, 520, -1, 20),
+        "retail 3b ann":  ("G", "RSAFS", ann3, 120, 1, 75),
+        "produksi ind":   ("G", "INDPRO", ann3, 120, 1, 75),
+        "empire":         ("G", "GACDISA066MSFRBNY", lambda x: x.rolling(3).mean(), 120, 1, 75),
+        "philly":         ("G", "GACDFSA066MSFRBPHI", lambda x: x.rolling(3).mean(), 120, 1, 75),
+        "cpi inti akselerasi": ("I", "CPILFESL", accel, 120, 1, 75),
+        "pce inti akselerasi": ("I", "PCEPILFE", accel, 120, 1, 90),
+        "upah akselerasi":     ("I", "CES0500000003", accel, 120, 1, 75),
+        "ppi akselerasi":      ("I", "PPIFIS", accel, 120, 1, 75),
+        "breakeven 3b":        ("I", "T10YIE", lambda x: x - x.shift(63), 2500, 1, 10)}
+    out = {"G": {"parts": {}}, "I": {"parts": {}}}; last_dates = []
+    for name, (g, sid, fn, n, sign, maxage) in spec.items():
+        try:
+            x = ser(sid)
+            if (pd.Timestamp(TODAY) - x.index[-1]).days > maxage: log.append(f"aktual: {name} basi ({x.index[-1].date()}), dilewati"); continue
+            z = zlast(fn(x), n)
+            if z is None: continue
+            out[g]["parts"][name] = round(max(-3, min(3, sign * z)), 2); last_dates.append(x.index[-1].date().isoformat())
+        except Exception as e: log.append(f"aktual GAGAL {name}: {e}")
+    for g in ("G", "I"):
+        v = list(out[g]["parts"].values()); out[g]["n"] = len(v)
+        out[g]["v"] = round(max(-3, min(3, sum(v) / len(v))), 2) if v else None
+    out["asof"] = max(last_dates) if last_dates else None
+    out["method"] = "z-score tren (3 bulan) terhadap riwayat 10 tahun; rata-rata komponen; tanpa konsensus"
+    return out
 
 COT = {"GOLD": "088691", "CRUDE": "067651", "COPPER": "085692", "EUR": "099741",
        "GBP": "096742", "JPY": "097741", "AUD": "232741", "SPX": "13874A",
@@ -140,8 +189,10 @@ def cot():
 if __name__ == "__main__":
     if not KEY: sys.exit("FRED_API_KEY belum diset (GitHub: Settings > Secrets > Actions)")
     rel = releases(); shock, liq, cb = market(); c = cot()
+    try: act = actual_conditions()
+    except Exception as e: act = None; log.append(f"aktual GAGAL total: {e}")
     feed = dict(generated=dt.datetime.utcnow().isoformat(timespec="seconds") + "Z",
-                consensus="proxy", releases=rel, shock=shock, liq=liq, cb=cb, cot=c, log=log)
+                consensus="proxy", releases=rel, actual=act, shock=shock, liq=liq, cb=cb, cot=c, log=log)
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     json.dump(feed, open(OUT, "w"), indent=1)
     print("\n".join(log)); print(f"releases={len(rel)} cot={len(c)} shock={shock}")

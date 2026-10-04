@@ -10,9 +10,9 @@ checks = []
 def add(level, grp, msg, link=None): checks.append(dict(level=level, grp=grp, msg=msg, link=link))
 FRED = "https://fred.stlouisfed.org/series/"
 SER = {"cpi_core": "CPILFESL", "cpi": "CPIAUCSL", "pce_core": "PCEPILFE", "ppi": "PPIFIS", "ahe": "CES0500000003",
-       "nfp": "PAYEMS", "unemp": "UNRATE", "claims": "ICSA", "jolts": "JTSJOL", "retail": "RSAFS", "ip": "INDPRO", "gdp": "A191RL1Q225SBEA"}
+       "nfp": "PAYEMS", "unemp": "UNRATE", "claims": "ICSA", "jolts": "JTSJOL", "retail": "RSAFS", "ip": "INDPRO", "empire": "GACDISA066MSFRBNY", "philly": "GACDFSA066MSFRBPHI", "gdp": "A191RL1Q225SBEA"}
 SD = {"cpi_core": .10, "cpi": .12, "pce_core": .08, "ppi": .25, "ahe": .12, "nfp": 75, "unemp": .12, "claims": 15,
-      "jolts": .35, "retail": .5, "ip": .3, "gdp": .7}
+      "jolts": .35, "retail": .5, "ip": .3, "empire": 8, "philly": 9, "gdp": .7}
 MAXAGE = {"claims": 12, "gdp": 130}   # hari; lainnya bulanan
 days = lambda s: (TODAY - dt.date.fromisoformat(s[:10])).days
 
@@ -41,6 +41,15 @@ for ind, sid in SER.items():
 
 if proxy: add("warn", "Konsensus", "Konsensus = proxy (rata-rata rilis lalu), BUKAN konsensus pasar, sehingga z-surprise belum akurat. Isi data/consensus.csv (tanggal,indikator,angka) untuk: " + ", ".join(proxy))
 
+# --- 2b. indeks kondisi aktual
+ac = feed.get("actual")
+if not ac: add("fail", "Aktual", "indeks kondisi aktual (G/I) tidak ada di feed")
+else:
+    for g in ("G", "I"):
+        a = ac.get(g) or {}
+        if a.get("v") is None or a.get("n", 0) < 3: add("fail", "Aktual", f"{g}: komponen kurang ({a.get('n', 0)}), butuh >=3", FRED + "PAYEMS")
+        else: add("ok" if abs(a["v"]) <= 3 else "fail", "Aktual", f"{g}={a['v']:+.2f} dari {a['n']} komponen: " + ", ".join(f"{k} {v:+.1f}" for k, v in a["parts"].items()), FRED + "PAYEMS")
+
 # --- 3. shock, likuiditas, bank sentral
 sh = feed.get("shock", {})
 rng = {"vix": (8, 90), "vix3m": (10, 80), "move": (40, 250), "hy": (1.5, 25), "hyp": (1.5, 25)}
@@ -59,6 +68,7 @@ else: add("warn", "Likuiditas", "data likuiditas tidak lengkap")
 for k, v in feed.get("cb", {}).items():
     r = v.get("rate")
     add("ok" if r is not None and 0 <= r <= 15 else "fail", "Bank sentral", f"{k} suku bunga {r}", FRED + ("DFEDTARU" if k == "FED" else "ECBDFR"))
+    if v.get("imp") is not None: add("warn", "Bank sentral", f"{k}: ekspektasi pasar = proksi yield 2Y ({v['imp']}), bukan futures; indikatif saja", FRED + "DGS2")
 
 # --- 4. COT
 for k, rows in feed.get("cot", {}).items():
