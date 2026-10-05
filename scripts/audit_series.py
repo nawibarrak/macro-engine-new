@@ -47,7 +47,8 @@ def p_bls(sid):
     out = []
     for x in r.json()["Results"]["series"][0]["data"]:
         if x["period"].startswith("M") and x["period"] != "M13":
-            out.append([f"{x['year']}-{x['period'][1:]}-01", float(x["value"])])
+            try: out.append([f"{x['year']}-{x['period'][1:]}-01", float(x["value"])])
+            except ValueError: pass          # BLS menulis '-' untuk bulan tanpa data
     return sorted(out)
 
 def fetch(src, days=60):
@@ -66,14 +67,14 @@ def run_cross():
         except Exception as e:
             add("silang", name, [sid], "na", f"tidak bisa diambil: {type(e).__name__}: {str(e)[:90]}", tol, links); continue
         common = sorted(set(a) & set(b))
-        if not common or (NOW().date() - dt.date.fromisoformat(common[-1])).days > 7:
-            add("silang", name, [sid], "na", "tidak ada tanggal bersama dalam 7 hari terakhir", tol, links); continue
+        if not common or (NOW().date() - dt.date.fromisoformat(common[-1])).days > 14:
+            add("silang", name, [sid], "na", "tidak ada tanggal bersama dalam 14 hari terakhir", tol, links); continue
         ds = [dev(a[d], b[d], mode) for d in common[-10:] if b[d]]
         lastd = ds[-1]; med = sorted(abs(x) for x in ds)[len(ds) // 2]
         unit = "%" if mode == "pct" else " poin"
         st = "fail" if abs(lastd) > tol else "warn" if (abs(lastd) > tol / 2 or med > tol / 2) else "pass"
         add("silang", name, [sid], st,
-            f"{common[-1]}: {L[1]}={a[common[-1]]:.4g} vs {R[1]}={b[common[-1]]:.4g}, selisih {lastd:+.3f}{unit} (toleransi {tol}{unit}; median 10 hari {med:.3f})", tol, links)
+            f"{common[-1]}: {L[1]}={a[common[-1]]:.4g} vs {R[1]}={b[common[-1]]:.4g}, selisih {lastd:+.3f}{unit} (toleransi {tol}{unit}; median 10 hari {med:.3f}). Selisih per tanggal: " + ", ".join(f"{d[5:]} {x:+.2f}" for d, x in zip(common[-10:], ds)), tol, links)
 
 def run_bls():
     for sid, bid, mode, tol in BLS:
@@ -131,9 +132,17 @@ def run_consistency():
         ra, rb = rets(x, y, step)
         c = corr(ra, rb) if ra else None
         if c is None: add("konsistensi", name, [a, b], "na", "data belum cukup (butuh ≥20 pengamatan bersama)"); continue
-        if cond == "neg": st = "fail" if c > fail_at else "warn" if c > warn_at else "pass"
-        else: st = "fail" if c < fail_at else "warn" if c < warn_at else "pass"
-        add("konsistensi", name, [a, b], st, f"korelasi {c:+.2f} dari {len(ra)} pengamatan")
+        def grade(c):
+            if cond == "neg": return "fail" if c > fail_at else "warn" if c > warn_at else "pass"
+            return "fail" if c < fail_at else "warn" if c < warn_at else "pass"
+        st = grade(c); extra = ""
+        if step == 1 and st != "pass":
+            r5a, r5b = rets(x, y, 5); c5 = corr(r5a, r5b) if r5a else None
+            if c5 is not None:
+                extra = f"; korelasi perubahan 5 hari {c5:+.2f}"
+                if st == "warn" and grade(c5) == "pass":
+                    st = "pass"; extra += " (lolos: selisih jam penutupan antar-pasar melemahkan korelasi harian, bukan data rusak)"
+        add("konsistensi", name, [a, b], st, f"korelasi harian {c:+.2f} dari {len(ra)} pengamatan{extra}")
     # rasio yang seharusnya stabil: emas/GLD, SPX/SPY
     for name, a, b in [("Rasio emas futures terhadap GLD stabil", "XAUUSD", "GLD"), ("Rasio S&P 500 terhadap SPY stabil", "SPX", "SPY")]:
         x, y = ser(a), ser(b); common = sorted(set(x) & set(y))[-60:]
