@@ -71,4 +71,25 @@ REGISTRY = [
  S("AHE", "Upah per jam rata-rata", "Inflasi", "bulanan", [("fred", "CES0500000003")], "USD", 15, 80),
  S("NROU", "Pengangguran alami (NAIRU, CBO)", "Inflasi", "kuartalan", [("fred", "NROU")], "%", 2, 8),
 ]
+REGISTRY += [
+ # --- Pelengkap barometer aliran modal (tier cepat)
+ S("IHSG", "IHSG (Indeks Harga Saham Gabungan)", "Harga", "harian", [("yf", "^JKSE")], "indeks", 2000, 20000),
+ S("USDIDR", "USD/IDR (rupiah)", "Harga", "harian", [("yf", "IDR=X")], "IDR", 8000, 30000),
+ S("AUDJPY", "AUD/JPY (barometer risk-on)", "Harga", "harian", [("yf", "AUDJPY=X")], "JPY", 40, 150),
+ S("IEF", "Obligasi AS 7-10 tahun (ETF IEF)", "Harga", "harian", [("yf", "IEF")], "USD", 60, 150),
+ S("SPY", "S&P 500 (ETF SPY)", "Harga", "harian", [("yf", "SPY")], "USD", 200, 2000),
+ S("GLD", "Emas (ETF GLD)", "Harga", "harian", [("yf", "GLD")], "USD", 100, 1000),
+ S("STABLE", "Pasokan stablecoin (proksi likuiditas kripto)", "Likuiditas", "harian", [("llama", "all")], "miliar USD", 50, 3000, v=True),
+ # --- Posisi spekulan (COT, net long non-komersial), mingguan
+ S("COT_GOLD", "COT emas: posisi bersih spekulan", "Posisi", "mingguan", [("cftc", "088691")], "kontrak"),
+ S("COT_CRUDE", "COT minyak mentah: posisi bersih spekulan", "Posisi", "mingguan", [("cftc", "067651")], "kontrak"),
+ S("COT_COPPER", "COT tembaga: posisi bersih spekulan", "Posisi", "mingguan", [("cftc", "085692")], "kontrak"),
+ S("COT_SPX", "COT S&P 500 e-mini: posisi bersih spekulan", "Posisi", "mingguan", [("cftc", "13874A")], "kontrak"),
+ S("COT_NDX", "COT Nasdaq e-mini: posisi bersih spekulan", "Posisi", "mingguan", [("cftc", "209742")], "kontrak"),
+ S("COT_EUR", "COT euro: posisi bersih spekulan", "Posisi", "mingguan", [("cftc", "099741")], "kontrak"),
+ S("COT_JPY", "COT yen: posisi bersih spekulan", "Posisi", "mingguan", [("cftc", "097741")], "kontrak"),
+ S("COT_GBP", "COT poundsterling: posisi bersih spekulan", "Posisi", "mingguan", [("cftc", "096742")], "kontrak"),
+ S("COT_AUD", "COT dolar Australia: posisi bersih spekulan", "Posisi", "mingguan", [("cftc", "232741")], "kontrak"),
+ S("COT_BTC", "COT Bitcoin CME: posisi bersih spekulan", "Posisi", "mingguan", [("cftc", "133741")], "kontrak"),
+]
 BY_ID = {s["id"]: s for s in REGISTRY}

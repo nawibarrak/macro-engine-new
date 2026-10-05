@@ -34,7 +34,28 @@ def p_yf(tk, start):
     h = yf.Ticker(tk).history(start=start, auto_adjust=False)["Close"].dropna()
     return [[i.strftime("%Y-%m-%d"), round(float(v), 6)] for i, v in h.items()]
 
-PROVIDERS = {"fred": p_fred, "yf": p_yf}
+def p_cftc(code, start):
+    """Posisi bersih non-komersial (long - short), mingguan, laporan hari Selasa."""
+    import requests
+    r = requests.get("https://publicreporting.cftc.gov/resource/6dca-aqww.json", timeout=40,
+        params={"cftc_contract_market_code": code, "$order": "report_date_as_yyyy_mm_dd DESC", "$limit": 400})
+    r.raise_for_status()
+    return sorted([x["report_date_as_yyyy_mm_dd"][:10],
+                   int(float(x["noncomm_positions_long_all"])) - int(float(x["noncomm_positions_short_all"]))]
+                  for x in r.json() if x["report_date_as_yyyy_mm_dd"][:10] >= start)
+
+def p_llama(_ref, start):
+    """Total pasokan stablecoin (miliar USD): proksi likuiditas kripto."""
+    import requests
+    r = requests.get("https://stablecoins.llama.fi/stablecoincharts/all", timeout=40)
+    r.raise_for_status()
+    out = []
+    for x in r.json():
+        day = dt.datetime.fromtimestamp(int(x["date"]), dt.timezone.utc).strftime("%Y-%m-%d")
+        if day >= start: out.append([day, round(x["totalCirculatingUSD"]["peggedUSD"] / 1e9, 3)])
+    return out
+
+PROVIDERS = {"fred": p_fred, "yf": p_yf, "cftc": p_cftc, "llama": p_llama}
 
 # ---------- util ----------
 def load(sid):
@@ -74,6 +95,11 @@ def age_days(date_str):
 
 def due(s, old, force):
     if force or not old: return True
+    refs = [r for _, r in s["prov"]]
+    if old.get("ref") not in refs: return True                       # definisi seri berubah -> ambil ulang
+    today = NOW().date().isoformat()
+    if any(p[0] > today for p in old.get("points", [])[-5:]): return True   # cache lama berisi tanggal masa depan
+    if old.get("state") in ("gagal", "ditahan") and (NOW() - dt.datetime.fromisoformat(old.get("tried", old["fetched"]))).total_seconds() > 600: return True
     mins = FREQ[s["freq"]][1]
     try: last = dt.datetime.fromisoformat(old["fetched"])
     except Exception: return True
