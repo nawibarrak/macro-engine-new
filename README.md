@@ -6,3 +6,10 @@ Kunci FRED: GitHub > Settings > Secrets and variables > Actions > FRED_API_KEY (
 ## Lapisan analisis
 - scripts/estimate_betas.py: beta aset diestimasi mingguan (ridge ke prior, uji walk-forward). Dipakai hanya jika lolos.
 - Sinyal BUY/SELL/HOLD di web: hanya keluar bila audit bersih, konsensus asli >=60%, skor >=0.75, keyakinan >=60%.
+- Probabilitas L2 otomatis: workflow `prob-l2` (bulanan) menjalankan scripts/l2_probability.py. Secrets: FRED_API_KEY, KAGGLE_USERNAME, KAGGLE_KEY (atau KAGGLE_API_TOKEN). Zona waktu data harga dideteksi otomatis; bila tidak terverifikasi, hasil tidak ditulis.
+
+## Lapisan data v2
+scripts/registry.py = daftar semua seri (label, frekuensi, penyedia berlapis, batas wajar).
+scripts/data_layer.py = ambil semua seri -> data/series/<ID>.json dan data/status.json
+(status per seri: ok / basi / ditahan / gagal / mati, plus gerbang sinyal). Riwayat seri disimpan
+di cache Actions, bukan di git. Seri bertanda unverified di status.json belum teruji: cek run pertama.
