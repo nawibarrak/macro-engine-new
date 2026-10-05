@@ -187,6 +187,10 @@ footer{padding:20px 0;color:var(--mute);font-size:12.5px}
   <div class="note" style="margin-bottom:10px"><b>Frekuensi:</b> harian, mingguan, bulanan, kuartalan (seberapa sering angka baru terbit; data bulanan bertanggal awal bulan dan terbit 2–6 minggu kemudian). <b>Status:</b> ok = segar · basi = lewat batas umur · ditahan = lompatan ekstrem menunggu konfirmasi · gagal = sumber error, data lama dipakai · mati = tidak diperbarui lama. <b>Proksi:</b> pengganti terdekat bila angka resmi tidak gratis. Label TERUKUR = angka dari sumber; DISIMPULKAN = hasil hitungan sistem; DIPUTUSKAN = tindakan.</div>
   <div class="foot" id="gf" role="group" aria-label="Filter kelompok"></div>
   <div class="tw"><table id="health"></table></div>
+  <h3 style="margin:16px 0 6px;font-size:15px">Audit silang: apakah angkanya benar?</h3>
+  <div class="note" style="margin-bottom:10px"><b>Kepercayaan:</b> terverifikasi = cocok dengan sumber independen kedua · konsisten = lolos uji hubungan antar-seri tetapi tanpa sumber kedua · sumber tunggal = belum ada pembanding · bermasalah = ada uji gagal (gerbang sinyal tertutup bila seri kritis). Toleransi masih perkiraan awal dan akan disetel dari hasil nyata.</div>
+  <div class="small" id="auditsum" style="margin-bottom:8px"></div>
+  <div class="tw"><table id="audit"></table></div>
 </section>
 <footer>Bukan saran investasi. Sumber: FRED, Yahoo Finance (yfinance), CFTC, DefiLlama, kalender mingguan. Sumber tidak resmi bisa berubah atau berhenti; itulah gunanya kolom status.</footer>
 </main>
@@ -284,12 +288,17 @@ function tableView(sers,dec){
 function mins(iso){return iso?Math.max(0,Math.round((Date.now()-Date.parse(iso))/60000)):null}
 function drawStatus(){
   const g=ST?.gate,c=ST?.counts||{},gen=ST?.generated||B?.generated;
-  const gateChip=!ST?'<span class="chip c-warn">⚠ status belum tersedia</span>':g.open?'<span class="chip c-ok">✓ Terbuka</span>':`<span class="chip c-bad">✕ Tertutup: ${esc(g.blocked_by.join(', '))}</span>`;
+  const ag=AU?.gate,blk=[...(g?.blocked_by||[]),...(ag?.blocked_by||[]).map(x=>x+' (audit)')];
+  const gateChip=!ST?'<span class="chip c-warn">⚠ status belum tersedia</span>':!AU?'<span class="chip c-warn">⚠ Audit belum tersedia, gerbang dianggap tertutup</span>':(g.open&&ag.open)?'<span class="chip c-ok">✓ Terbuka</span>':`<span class="chip c-bad">✕ Tertutup: ${esc(blk.join(', '))}</span>`;
+  const un=AU?.gate?.unverified_crit||[];
+  const plBad=(PL?.steps||[]).filter(s=>s.status==='gagal').map(s=>s.step),ccV=CC?.violations||[];
+  const sysChips=(plBad.length?`<span class="chip c-bad">✕ Langkah gagal: ${esc(plBad.join(', '))}</span> `:'')+(CC?(ccV.length?`<span class="chip c-bad">✕ ${ccV.length} pelanggaran konsep</span>`:'<span class="chip c-ok">✓ Sesuai konsep</span>'):'<span class="chip c-warn">⚠ pemeriksa konsep belum jalan</span>');
   const ok=c.ok||0,bad=(c.basi||0)+(c.ditahan||0)+(c.gagal||0)+(c.mati||0);
   const m=mins(gen);
   $('#bar').innerHTML=`
    <div class="it"><b>Gerbang sinyal</b>${gateChip}</div>
    <div class="it"><b>Data</b><span><span class="num">${ok}</span> segar${bad?` · <span class="num s-basi">${bad}</span> perlu perhatian`:''} dari <span class="num">${ST?.n||Object.keys(B.series).length}</span> seri</span></div>
+   <div class="it"><b>Audit dan konsep</b><span>${AU?`<span class="num">${AU.counts.pass}</span> lolos · <span class="num ${AU.counts.fail?'s-gagal':''}">${AU.counts.fail}</span> gagal · <span class="num ${AU.counts.warn?'s-basi':''}">${AU.counts.warn}</span> peringatan`:'–'}${un.length?`<div class="small s-basi">Seri kritis belum terverifikasi: ${esc(un.join(', '))}</div>`:''}<div style="margin-top:4px">${sysChips}</div></span></div>
    <div class="it"><b>Diperbarui</b><span>${gen?new Date(gen).toLocaleString('id-ID',{dateStyle:'medium',timeStyle:'short'}):'–'} <span class="mute">(${m==null?'?':m} menit lalu)</span></span></div>
    <div class="it"><b>Jadwal</b><span class="small">Server memperbarui tiap ≤30 menit (GitHub bisa menunda). Halaman memuat ulang tiap 10 menit.</span></div>
    <div class="it"><b>Mode pasar dan fase</b><span class="small mute">Disimpulkan otomatis di tahap 3</span></div>`}
@@ -452,18 +461,31 @@ function drawHealth(){
   const groups=['Semua',...new Set(rows.map(r=>r.group))];const gf=$('#gf');gf.innerHTML='';
   groups.forEach(g=>{const b=document.createElement('button');b.type='button';b.textContent=g;b.setAttribute('aria-pressed',gfil===g);b.onclick=()=>{gfil=g;drawHealth()};gf.append(b)});
   const ord={gagal:0,mati:1,ditahan:2,basi:3,ok:4};
-  let h='<thead><tr><th>Seri</th><th>Kelompok</th><th>Frekuensi</th><th>Sumber</th><th>Data terakhir</th><th class="r">Umur (hari)</th><th>Status</th><th>Catatan</th></tr></thead><tbody>';
+  let h='<thead><tr><th>Seri</th><th>Kelompok</th><th>Frekuensi</th><th>Sumber</th><th>Data terakhir</th><th class="r">Umur (hari)</th><th>Status</th><th>Kepercayaan</th><th>Catatan</th></tr></thead><tbody>';
   rows.filter(r=>gfil==='Semua'||r.group===gfil).sort((a,b)=>(ord[a.state]-ord[b.state])||(a.id<b.id?-1:1)).forEach(r=>{
     const ic={ok:'✓',basi:'!',ditahan:'⏸',gagal:'✕',mati:'✕'}[r.state]||'?';
-    h+=`<tr><td>${esc(r.label)}<div class="small mute">${esc(r.id)}${r.unverified?' · belum teruji penuh':''}</div></td><td>${esc(r.group)}</td><td>${fq(r.freq)}</td><td class="small">${esc(r.prov||'–')}${r.ref?': '+esc(r.ref):''}${r.fallback?' <b>(cadangan)</b>':''}</td><td class="small">${fd(r.asof)}</td><td class="r num">${r.age==null?'–':r.age}</td><td class="state s-${r.state}">${ic} ${stText(r.state)}</td><td class="small mute">${esc(r.note||'')}</td></tr>`});
-  $('#health').innerHTML=h+'</tbody>'}
+    h+=`<tr><td>${esc(r.label)}<div class="small mute">${esc(r.id)}${r.unverified?' · belum teruji penuh':''}</div></td><td>${esc(r.group)}</td><td>${fq(r.freq)}</td><td class="small">${esc(r.prov||'–')}${r.ref?': '+esc(r.ref):''}${r.fallback?' <b>(cadangan)</b>':''}</td><td class="small">${fd(r.asof)}</td><td class="r num">${r.age==null?'–':r.age}</td><td class="state s-${r.state}">${ic} ${stText(r.state)}</td><td class="small">${trustTag(AU?.trust?.[r.id])}</td><td class="small mute">${esc(r.note||'')}</td></tr>`});
+  $('#health').innerHTML=h+'</tbody>';drawAudit()}
+function trustTag(t){if(!t)return '<span class="mute">–</span>';const c={terverifikasi:'s-ok',konsisten:'s-ok',bermasalah:'s-gagal','sumber tunggal':'s-basi'}[t]||'';return `<span class="state ${c}">${esc(t)}</span>`}
+function drawAudit(){
+  if(!AU){$('#auditsum').textContent='data/audit_series.json belum tersedia: jalankan workflow dengan skrip terbaru.';$('#audit').innerHTML='';return}
+  const tc={};Object.values(AU.trust).forEach(t=>tc[t]=(tc[t]||0)+1);
+  $('#auditsum').innerHTML=`Dibuat ${new Date(AU.generated).toLocaleString('id-ID',{dateStyle:'medium',timeStyle:'short'})} · `+Object.entries(tc).map(([k,v])=>`${esc(k)}: <b class="num">${v}</b>`).join(' · ');
+  const ord={fail:0,warn:1,pass:2,na:3},ic={fail:'✕',warn:'!',pass:'✓',na:'–'},cl={fail:'s-gagal',warn:'s-basi',pass:'s-ok',na:'s-mati'},tx={fail:'gagal',warn:'peringatan',pass:'lolos',na:'tidak berlaku'};
+  let h='<thead><tr><th>Uji</th><th>Jenis</th><th>Hasil</th><th>Rincian</th></tr></thead><tbody>';
+  [...AU.checks].sort((a,b)=>ord[a.status]-ord[b.status]).forEach(c=>{h+=`<tr><td>${esc(c.name)}<div class="small mute">${esc((c.series||[]).join(', '))}</div></td><td class="small">${esc(c.kind)}</td><td class="state ${cl[c.status]}">${ic[c.status]} ${tx[c.status]}</td><td class="small mute">${esc(c.detail||'')}</td></tr>`});
+  $('#audit').innerHTML=h+'</tbody>'}
 
 /* ---------- muat dan gambar ---------- */
 async function getJSON(u){const r=await fetch(u+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error(u+' '+r.status);return r.json()}
+let AU=null,PL=null,CC=null;
 async function load(){
   try{B=await getJSON('data/bundle.json')}catch(e){$('#bar').innerHTML='<span class="chip c-bad">✕ data/bundle.json belum tersedia</span><span class="small mute">Jalankan workflow feed-dan-deploy sekali, lalu muat ulang halaman ini.</span>';return false}
   try{ST=await getJSON('data/status.json')}catch(e){ST=null}
   try{FEED=await getJSON('data/feed.json')}catch(e){FEED=null}
+  try{AU=await getJSON('data/audit_series.json')}catch(e){AU=null}
+  try{PL=await getJSON('data/pipeline.json')}catch(e){PL=null}
+  try{CC=await getJSON('data/concept_check.json')}catch(e){CC=null}
   try{const t=await (await fetch('data/consensus.csv?t='+Date.now(),{cache:'no-store'})).text();
     CONS=t.split('\n').map(l=>l.split(',').map(x=>x.trim())).filter(c=>/^20\d\d-\d\d-\d\d$/.test(c[0])&&c.length>=3).map(c=>[c[0],c[1],parseFloat(c[2])]).filter(c=>!isNaN(c[2]))}catch(e){CONS=[]}
   return true}

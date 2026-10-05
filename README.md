@@ -18,3 +18,8 @@ di cache Actions, bukan di git. Seri bertanda unverified di status.json belum te
 index.html = Beranda baru (membaca data/bundle.json, data/status.json, data/feed.json, data/consensus.csv).
 lanjutan.html = alat lama (sinyal, input manual). bundle.json dibuat oleh scripts/data_layer.py,
 jadi beranda kosong sampai workflow feed-dan-deploy selesai sekali dengan skrip terbaru.
+
+## Audit dan penjaga konsep (tahap 2b)
+- `scripts/pipeline.py` adalah satu-satunya pintu workflow; langkah baru ditambah di daftar STEPS.
+- `scripts/audit_series.py` -> `data/audit_series.json`: uji silang antar-sumber, identitas internal, deteksi macet. Gerbang sinyal tertutup bila seri kritis bermasalah.
+- `scripts/check_concept.py --strict` memeriksa kepatuhan pada `docs/KONSEP.md`; wajib hijau sebelum setiap penyerahan.
