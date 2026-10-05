@@ -15,13 +15,8 @@ jobs:
       - run: pip install -r requirements.txt
       - uses: actions/cache@v4
         with: { path: data/series, key: "series-${{ github.run_id }}", restore-keys: "series-" }
-      - run: python scripts/fetch_consensus.py
-      - run: python scripts/fetch_feed.py
-        env: { FRED_API_KEY: "${{ secrets.FRED_API_KEY }}" }
-      - run: python scripts/data_layer.py
-        env: { FRED_API_KEY: "${{ secrets.FRED_API_KEY }}" }
-      - run: python scripts/audit_feed.py
-      - run: python scripts/estimate_betas.py
+      - name: pipeline (data, audit, analisis, pemeriksa konsep)
+        run: python scripts/pipeline.py
         env: { FRED_API_KEY: "${{ secrets.FRED_API_KEY }}" }
       - name: simpan riwayat konsensus
         run: |
