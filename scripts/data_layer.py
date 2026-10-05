@@ -48,8 +48,9 @@ def save(sid, d):
 
 def clean(pts, s):
     """Buang nilai di luar batas wajar & duplikat tanggal. Kembalikan (titik, jumlah_dibuang)."""
-    seen = {}; bad = 0
+    seen = {}; bad = 0; today = NOW().date().isoformat()
     for d, v in pts:
+        if d > today: continue            # proyeksi / tanggal masa depan bukan data teramati
         if v is None or (isinstance(v, float) and math.isnan(v)): continue
         if (s["lo"] is not None and v < s["lo"]) or (s["hi"] is not None and v > s["hi"]): bad += 1; continue
         seen[d] = v
@@ -83,13 +84,16 @@ def process(s, force=False):
     if not due(s, old, force):
         return old, "lewati"
     start = (NOW().date() - dt.timedelta(days=365 * (4 if s["freq"] in ("harian", "mingguan") else 15))).isoformat()
-    errs = []; got = None; used = None
+    errs = []; got = None; used = None; maxage = FREQ[s["freq"]][0]
     for name, ref in s["prov"]:
         try:
             pts = PROVIDERS[name](ref, start)
             pts, bad = clean(pts, s)
             if len(pts) < 2: errs.append(f"{name}:{ref} kosong"); continue
-            got, used = pts, (name, ref, bad); break
+            if got is None or pts[-1][0] > got[-1][0]:      # simpan yang observasinya paling baru
+                got, used = pts, (name, ref, bad)
+            if age_days(got[-1][0]) <= maxage: break         # cukup segar -> tidak perlu cadangan
+            errs.append(f"{name}:{ref} basi ({got[-1][0]}), coba cadangan")
         except Exception as e:
             errs.append(f"{name}:{ref} {type(e).__name__}: {str(e)[:80]}")
     now = NOW().isoformat(timespec="seconds")
@@ -121,7 +125,7 @@ def status_row(s, d, act):
     if d.get("asof"):
         a = age_days(d["asof"])
         if st == "ok" and a > maxage: st = "basi"
-        if st in ("ok", "basi", "gagal") and a > maxage * 3: st = "mati"
+        if st in ("ok", "basi", "gagal") and a > maxage * 2: st = "mati"
     return dict(id=s["id"], label=s["label"], group=s["group"], freq=s["freq"], tier=FREQ[s["freq"]][2],
                 prov=d.get("prov"), ref=d.get("ref"), fallback=d.get("fallback", False),
                 asof=d.get("asof"), age=a, last=d.get("last"), fetched=d.get("fetched"),

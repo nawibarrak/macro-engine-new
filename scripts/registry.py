@@ -4,8 +4,10 @@ umur maksimum sebelum dianggap basi. Penyedia: ("fred", id) | ("yf", ticker).
 Baris dengan flag v=True BELUM diuji dari sandbox: lihat status.json setelah run pertama."""
 
 # freq -> (umur maks hari sebelum 'basi', menit minimum antar-fetch, tier)
+# Umur dihitung dari TANGGAL OBSERVASI. Seri bulanan bertanggal awal bulan dan baru dirilis
+# 2-6 minggu kemudian, jadi batasnya harus memuat jeda rilis itu (bukan sekadar 31 hari).
 FREQ = {"harian": (5, 25, "cepat"), "mingguan": (12, 180, "lambat"),
-        "bulanan": (50, 180, "lambat"), "kuartalan": (130, 360, "lambat")}
+        "bulanan": (80, 180, "lambat"), "kuartalan": (220, 360, "lambat")}
 
 def S(id, label, group, freq, prov, unit="", lo=None, hi=None, crit=False, v=False, note=""):
     return dict(id=id, label=label, group=group, freq=freq, prov=prov, unit=unit,
@@ -40,9 +42,9 @@ REGISTRY = [
  S("ECB", "Suku bunga deposito ECB", "Kebijakan", "harian", [("fred", "ECBDFR")], "%", -1, 10),
  S("BOE", "Suku bunga semalam Inggris (SONIA, proksi BoE)", "Kebijakan", "harian", [("fred", "IUDSOIA")], "%", 0, 12, v=True),
  S("BOJ", "Suku bunga antarbank Jepang (proksi BoJ)", "Kebijakan", "bulanan", [("fred", "IRSTCI01JPM156N")], "%", -1, 5, v=True),
- S("BOC", "Suku bunga kebijakan Kanada", "Kebijakan", "bulanan", [("fred", "IRSTCB01CAM156N")], "%", 0, 12, v=True),
- S("RBA", "Suku bunga kebijakan Australia", "Kebijakan", "bulanan", [("fred", "IRSTCB01AUM156N")], "%", 0, 12, v=True),
- S("SNB", "Suku bunga kebijakan Swiss", "Kebijakan", "bulanan", [("fred", "IRSTCB01CHM156N")], "%", -2, 8, v=True),
+ S("BOC", "Suku bunga antarbank 3 bulan Kanada (proksi BoC)", "Kebijakan", "bulanan", [("fred", "IR3TIB01CAM156N")], "%", 0, 12),
+ S("RBA", "Suku bunga antarbank 3 bulan Australia (proksi RBA)", "Kebijakan", "bulanan", [("fred", "IR3TIB01AUM156N")], "%", 0, 12),
+ S("SNB", "Suku bunga antarbank 3 bulan Swiss (proksi SNB)", "Kebijakan", "bulanan", [("fred", "IR3TIB01CHM156N")], "%", -2, 8),
  # --- Stres dan likuiditas
  S("VIX", "VIX (volatilitas saham AS)", "Stres", "harian", [("fred", "VIXCLS"), ("yf", "^VIX")], "poin", 5, 150, True),
  S("VIX3M", "VIX 3 bulan", "Stres", "harian", [("fred", "VXVCLS"), ("yf", "^VIX3M")], "poin", 5, 100),
@@ -50,7 +52,7 @@ REGISTRY = [
  S("HYOAS", "Selisih kredit high-yield (OAS)", "Stres", "harian", [("fred", "BAMLH0A0HYM2")], "%", 1, 25, True),
  S("NFCI", "Kondisi keuangan Chicago (NFCI)", "Stres", "mingguan", [("fred", "NFCI")], "indeks", -2, 6),
  S("WALCL", "Total aset neraca Fed", "Likuiditas", "mingguan", [("fred", "WALCL")], "juta USD", 1e6, 2e7),
- S("TGA", "Kas Treasury di Fed (TGA)", "Likuiditas", "mingguan", [("fred", "WTREGEN")], "miliar USD", 0, 2e3),
+ S("TGA", "Kas Treasury di Fed (TGA)", "Likuiditas", "mingguan", [("fred", "WTREGEN")], "juta USD", 0, 3e6),
  S("RRP", "Reverse repo Fed", "Likuiditas", "harian", [("fred", "RRPONTSYD")], "miliar USD", 0, 3e3),
  # --- Pertumbuhan
  S("NFP", "Penggajian nonpertanian (level)", "Pertumbuhan", "bulanan", [("fred", "PAYEMS")], "ribu", 1e5, 2e5),
