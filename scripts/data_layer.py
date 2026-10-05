@@ -176,6 +176,17 @@ def main():
               counts={k: sum(r["state"] == k for r in rows) for k in ("ok", "basi", "ditahan", "gagal", "mati")},
               gate=dict(open=not crit_bad, blocked_by=crit_bad), series=rows)
     json.dump(st, open(os.path.join(ROOT, "status.json"), "w"), indent=1)
+    # bundle ringkas untuk beranda: satu berkas, riwayat dipangkas sesuai frekuensi
+    keepb = {"harian": 520, "mingguan": 200, "bulanan": 72, "kuartalan": 40}
+    bundle = {}
+    for s, r in zip(REGISTRY, rows):
+        d_ = load(s["id"])
+        if d_ and d_.get("points"):
+            bundle[s["id"]] = dict(l=s["label"], g=s["group"], f=s["freq"], u=s["unit"], st=r["state"], a=r["asof"],
+                                   ag=r["age"], v=d_.get("last"), fe=d_.get("fetched"), pv=d_.get("prov"), r=d_.get("ref"),
+                                   fb=bool(d_.get("fallback")), c=bool(s["crit"]), un=bool(s["v"]), n=r["note"],
+                                   p=d_["points"][-keepb[s["freq"]]:])
+    json.dump(dict(generated=st["generated"], series=bundle), open(os.path.join(ROOT, "bundle.json"), "w"), separators=(",", ":"))
     print(f"seri={len(rows)} {st['counts']} gerbang={'TERBUKA' if st['gate']['open'] else 'TERTUTUP ' + ','.join(crit_bad)}")
     for r in bad: print(f"  {r['state']:8} {r['id']:8} {r['note'] or ''}")
 

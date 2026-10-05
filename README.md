@@ -13,3 +13,8 @@ scripts/registry.py = daftar semua seri (label, frekuensi, penyedia berlapis, ba
 scripts/data_layer.py = ambil semua seri -> data/series/<ID>.json dan data/status.json
 (status per seri: ok / basi / ditahan / gagal / mati, plus gerbang sinyal). Riwayat seri disimpan
 di cache Actions, bukan di git. Seri bertanda unverified di status.json belum teruji: cek run pertama.
+
+## Beranda v2 (tahap 2)
+index.html = Beranda baru (membaca data/bundle.json, data/status.json, data/feed.json, data/consensus.csv).
+lanjutan.html = alat lama (sinyal, input manual). bundle.json dibuat oleh scripts/data_layer.py,
+jadi beranda kosong sampai workflow feed-dan-deploy selesai sekali dengan skrip terbaru.
