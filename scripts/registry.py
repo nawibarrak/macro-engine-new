@@ -16,8 +16,8 @@ def S(id, label, group, freq, prov, unit="", lo=None, hi=None, crit=False, v=Fal
 REGISTRY = [
  # --- Harga aset prioritas (tier cepat; yfinance, cadangan FRED bila ada)
  S("XAUUSD", "Emas (XAU/USD, futures GC)", "Harga", "harian", [("yf", "GC=F")], "USD/oz", 500, 6000, True),
- S("WTI", "Minyak mentah WTI", "Harga", "harian", [("fred", "DCOILWTICO"), ("yf", "CL=F")], "USD/bbl", -50, 250, True),
- S("SPX", "S&P 500", "Harga", "harian", [("fred", "SP500"), ("yf", "^GSPC")], "indeks", 500, 20000, True),
+ S("WTI", "Minyak mentah WTI", "Harga", "harian", [("yf", "CL=F"), ("fred", "DCOILWTICO")], "USD/bbl", -50, 250, True),
+ S("SPX", "S&P 500", "Harga", "harian", [("yf", "^GSPC"), ("fred", "SP500")], "indeks", 500, 20000, True),
  S("USDJPY", "USD/JPY", "Harga", "harian", [("yf", "JPY=X"), ("fred", "DEXJPUS")], "JPY", 50, 250, True),
  S("EURUSD", "EUR/USD", "Harga", "harian", [("yf", "EURUSD=X"), ("fred", "DEXUSEU")], "USD", 0.6, 1.6, True),
  S("DXY", "Indeks Dolar AS (DXY)", "Harga", "harian", [("yf", "DX-Y.NYB"), ("fred", "DTWEXBGS")], "indeks", 70, 140),
@@ -30,7 +30,7 @@ REGISTRY = [
  S("NIKKEI", "Nikkei 225", "Harga", "harian", [("yf", "^N225")], "indeks", 5000, 100000),
  # --- Suku bunga, yield, ekspektasi
  S("US02Y", "Yield obligasi AS 2 tahun", "Yield", "harian", [("fred", "DGS2")], "%", -1, 12, True),
- S("US10Y", "Yield obligasi AS 10 tahun", "Yield", "harian", [("fred", "DGS10"), ("yf", "^TNX")], "%", -1, 12, True),
+ S("US10Y", "Yield obligasi AS 10 tahun", "Yield", "harian", [("yf", "^TNX"), ("fred", "DGS10")], "%", -1, 12, True),
  S("US30Y", "Yield obligasi AS 30 tahun", "Yield", "harian", [("fred", "DGS30")], "%", -1, 12),
  S("REAL10Y", "Yield riil 10 tahun (TIPS)", "Yield", "harian", [("fred", "DFII10")], "%", -3, 6),
  S("BE10Y", "Ekspektasi inflasi 10 tahun (breakeven)", "Yield", "harian", [("fred", "T10YIE")], "%", -1, 6),
@@ -46,8 +46,8 @@ REGISTRY = [
  S("RBA", "Suku bunga antarbank 3 bulan Australia (proksi RBA)", "Kebijakan", "bulanan", [("fred", "IR3TIB01AUM156N")], "%", 0, 12),
  S("SNB", "Suku bunga antarbank 3 bulan Swiss (proksi SNB)", "Kebijakan", "bulanan", [("fred", "IR3TIB01CHM156N")], "%", -2, 8),
  # --- Stres dan likuiditas
- S("VIX", "VIX (volatilitas saham AS)", "Stres", "harian", [("fred", "VIXCLS"), ("yf", "^VIX")], "poin", 5, 150, True),
- S("VIX3M", "VIX 3 bulan", "Stres", "harian", [("fred", "VXVCLS"), ("yf", "^VIX3M")], "poin", 5, 100),
+ S("VIX", "VIX (volatilitas saham AS)", "Stres", "harian", [("yf", "^VIX"), ("fred", "VIXCLS")], "poin", 5, 150, True),
+ S("VIX3M", "VIX 3 bulan", "Stres", "harian", [("yf", "^VIX3M"), ("fred", "VXVCLS")], "poin", 5, 100),
  S("MOVE", "MOVE (volatilitas obligasi AS)", "Stres", "harian", [("yf", "^MOVE")], "poin", 20, 300, v=True),
  S("HYOAS", "Selisih kredit high-yield (OAS)", "Stres", "harian", [("fred", "BAMLH0A0HYM2")], "%", 1, 25, True),
  S("NFCI", "Kondisi keuangan Chicago (NFCI)", "Stres", "mingguan", [("fred", "NFCI")], "indeks", -2, 6),

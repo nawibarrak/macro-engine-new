@@ -97,6 +97,7 @@ def due(s, old, force):
     if force or not old: return True
     refs = [r for _, r in s["prov"]]
     if old.get("ref") not in refs: return True                       # definisi seri berubah -> ambil ulang
+    if bool(old.get("fallback")) != (old.get("ref") != s["prov"][0][1]) and old.get("prov") in dict(s["prov"]): return True   # urutan sumber utama berubah
     today = NOW().date().isoformat()
     if any(p[0] > today for p in old.get("points", [])[-5:]): return True   # cache lama berisi tanggal masa depan
     if old.get("state") in ("gagal", "ditahan") and (NOW() - dt.datetime.fromisoformat(old.get("tried", old["fetched"]))).total_seconds() > 600: return True

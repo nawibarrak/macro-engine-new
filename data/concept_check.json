@@ -1,0 +1,39 @@
+{
+ "generated": "2026-10-05T16:38:17+00:00",
+ "violations": [],
+ "notes": [
+  {
+   "rule": "K4",
+   "msg": "README.md menyebut Kaggle/Colab (sisa lama, diganti di tahap 4)"
+  },
+  {
+   "rule": "K4",
+   "msg": "requirements-l2.txt menyebut Kaggle/Colab (sisa lama, diganti di tahap 4)"
+  },
+  {
+   "rule": "K4",
+   "msg": "lanjutan.html menyebut Kaggle/Colab (sisa lama, diganti di tahap 4)"
+  },
+  {
+   "rule": "K4",
+   "msg": ".github/workflows/prob.yml menyebut Kaggle/Colab (sisa lama, diganti di tahap 4)"
+  },
+  {
+   "rule": "K4",
+   "msg": "scripts/l2_probability.py menyebut Kaggle/Colab (sisa lama, diganti di tahap 4)"
+  },
+  {
+   "rule": "K4",
+   "msg": "scripts/check_concept.py menyebut Kaggle/Colab (sisa lama, diganti di tahap 4)"
+  },
+  {
+   "rule": "K4",
+   "msg": "docs/PROGRESS.md menyebut Kaggle/Colab (sisa lama, diganti di tahap 4)"
+  },
+  {
+   "rule": "K4",
+   "msg": "docs/KONSEP.md menyebut Kaggle/Colab (sisa lama, diganti di tahap 4)"
+  }
+ ],
+ "series": 67
+}

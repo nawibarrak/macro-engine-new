@@ -30,7 +30,7 @@ CROSS = [
  ("NDX", "Nasdaq 100: Yahoo vs FRED", ("yf", "^NDX"), ("fred", "NASDAQ100"), "pct", 0.5),
  ("US10Y", "Yield 10 tahun: FRED vs Yahoo", ("fred", "DGS10"), ("yf", "^TNX"), "abs", 0.08),
  ("VIX", "VIX: FRED vs Yahoo", ("fred", "VIXCLS"), ("yf", "^VIX"), "pct", 3.0),
- ("WTI", "WTI: FRED (spot) vs Yahoo (futures)", ("fred", "DCOILWTICO"), ("yf", "CL=F"), "pct", 3.0),
+ ("WTI", "WTI: FRED (spot) vs Yahoo (futures)", ("fred", "DCOILWTICO"), ("yf", "CL=F"), "pct", 3.0, ("yf", "USO")),
  ("USDJPY", "USD/JPY: Yahoo vs FRED", ("yf", "JPY=X"), ("fred", "DEXJPUS"), "pct", 0.8),
  ("EURUSD", "EUR/USD: Yahoo vs FRED", ("yf", "EURUSD=X"), ("fred", "DEXUSEU"), "pct", 0.8),
  ("BTC", "Bitcoin: Yahoo vs FRED (Coinbase)", ("yf", "BTC-USD"), ("fred", "CBBTCUSD"), "pct", 2.0)]
@@ -60,7 +60,8 @@ def dev(a, b, mode):
     return (a / b - 1) * 100 if mode == "pct" else a - b
 
 def run_cross():
-    for sid, name, L, R, mode, tol in CROSS:
+    for row in CROSS:
+        sid, name, L, R, mode, tol = row[:6]; arb = row[6] if len(row) > 6 else None
         links = [link(*L), link(*R)]
         try:
             a, b = fetch(L), fetch(R)
@@ -69,12 +70,32 @@ def run_cross():
         common = sorted(set(a) & set(b))
         if not common or (NOW().date() - dt.date.fromisoformat(common[-1])).days > 14:
             add("silang", name, [sid], "na", "tidak ada tanggal bersama dalam 14 hari terakhir", tol, links); continue
-        ds = [dev(a[d], b[d], mode) for d in common[-10:] if b[d]]
-        lastd = ds[-1]; med = sorted(abs(x) for x in ds)[len(ds) // 2]
+        # Selisih jam/tanggal antar-sumber (FRED spot/noon vs Yahoo penutupan) wajar: bandingkan juga dengan hari
+        # sebelum/sesudah di sumber kanan. Gagal hanya bila selisih TERBAIK tetap melewati toleransi.
+        bd = sorted(b)
+        def best(d):
+            i = bd.index(d) if d in b else None
+            c = [dev(a[d], b[x], mode) for x in bd[max(0, i - 1):i + 2] if b[x]] if i is not None else []
+            return min(c, key=abs) if c else None
+        ds = [(d, dev(a[d], b[d], mode), best(d)) for d in common[-10:] if b[d]]
+        d0, lastd, bst = ds[-1]; med = sorted(abs(x[1]) for x in ds)[len(ds) // 2]
         unit = "%" if mode == "pct" else " poin"
-        st = "fail" if abs(lastd) > tol else "warn" if (abs(lastd) > tol / 2 or med > tol / 2) else "pass"
-        add("silang", name, [sid], st,
-            f"{common[-1]}: {L[1]}={a[common[-1]]:.4g} vs {R[1]}={b[common[-1]]:.4g}, selisih {lastd:+.3f}{unit} (toleransi {tol}{unit}; median 10 hari {med:.3f}). Selisih per tanggal: " + ", ".join(f"{d[5:]} {x:+.2f}" for d, x in zip(common[-10:], ds)), tol, links)
+        timing = abs(lastd) > tol and abs(bst) <= tol
+        st = "fail" if abs(bst) > tol else "warn" if (timing or abs(bst) > tol / 2 or med > tol / 2) else "pass"
+        det = (f"{d0}: {L[1]}={a[d0]:.4g} vs {R[1]}={b[d0]:.4g}, selisih {lastd:+.3f}{unit}"
+               f"; selisih terbaik dengan hari tetangga {bst:+.3f}{unit} (toleransi {tol}{unit}; median 10 hari {med:.3f})"
+               + (". Peringatan: cocok hanya bila digeser sehari (beda jam penutupan/penanggalan)" if timing else ""))
+        if st != "pass":
+            det += ". Tingkat per tanggal (kiri/kanan): " + ", ".join(f"{d[5:]} {a[d]:.4g}/{b[d]:.4g}" for d, _, _ in ds[-6:])
+            if arb:
+                try:
+                    c3 = fetch(arb); cm = [d for d in common if d in c3][-6:]
+                    if len(cm) >= 3:
+                        ch = lambda s_: (s_[cm[-1]] / s_[cm[0]] - 1) * 100
+                        det += f". Pembanding ketiga {arb[1]}, perubahan {cm[0][5:]} sampai {cm[-1][5:]}: {L[1]} {ch(a):+.1f}%, {R[1]} {ch(b):+.1f}%, {arb[1]} {ch(c3):+.1f}%"
+                except Exception as e:
+                    det += f". Pembanding ketiga {arb[1]} gagal diambil ({type(e).__name__})"
+        add("silang", name, [sid], st, det, tol, links)
 
 def run_bls():
     for sid, bid, mode, tol in BLS:
