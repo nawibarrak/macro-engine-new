@@ -170,12 +170,21 @@ def run_consistency():
                     st = "pass"; extra += " (lolos: selisih jam penutupan antar-pasar melemahkan korelasi harian, bukan data rusak)"
         add("konsistensi", name, [a, b], st, f"korelasi harian {c:+.2f} dari {len(ra)} pengamatan{extra}")
     # rasio yang seharusnya stabil: emas/GLD, SPX/SPY
-    for name, a, b in [("Rasio emas futures terhadap GLD stabil", "XAUUSD", "GLD"), ("Rasio WTI terhadap Brent stabil", "WTI", "BRENT"), ("Rasio S&P 500 terhadap SPY stabil", "SPX", "SPY")]:
+    for name, a, b in [("Rasio emas futures terhadap GLD stabil", "XAUUSD", "GLD"), ("Rasio S&P 500 terhadap SPY stabil", "SPX", "SPY")]:
         x, y = ser(a), ser(b); common = sorted(set(x) & set(y))[-60:]
         if len(common) < 20: add("konsistensi", name, [a, b], "na", "data belum cukup"); continue
         r = [x[d] / y[d] for d in common if y[d]]; med = sorted(r)[len(r) // 2]; dv = (r[-1] / med - 1) * 100
         add("konsistensi", name, [a, b], "fail" if abs(dv) > 4 else "warn" if abs(dv) > 1.5 else "pass",
             f"rasio terbaru {r[-1]:.3f} vs median 60 hari {med:.3f}, simpangan {dv:+.2f}% (peringatan >1,5%, gagal >4%)")
+    # WTI/Brent: bukan rasio tetap (selisih bergerak dengan fundamental), jadi hanya batas kewajaran struktural
+    w, br = ser("WTI"), ser("BRENT"); cm = sorted(set(w) & set(br))
+    if cm and br.get(cm[-1]):
+        d = cm[-1]; rr = w[d] / br[d]
+        st = "pass" if 0.78 <= rr <= 1.00 else "warn" if 0.70 <= rr <= 1.05 else "fail"
+        add("konsistensi", "Rasio WTI terhadap Brent dalam batas wajar (0,78 sampai 1,00)", ["WTI", "BRENT"], st,
+            f"{d}: WTI {w[d]:.2f} / Brent {br[d]:.2f} = {rr:.3f}. WTI umumnya diperdagangkan di bawah Brent; selisihnya memang bergerak dengan fundamental, jadi bukan rasio tetap")
+    else:
+        add("konsistensi", "Rasio WTI terhadap Brent dalam batas wajar (0,78 sampai 1,00)", ["WTI", "BRENT"], "na", "data bersama belum ada")
     # likuiditas bersih masuk akal (miliar USD)
     w, t, r_ = ser("WALCL"), ser("TGA"), ser("RRP"); cm = sorted(set(w) & set(t))
     if cm and r_:
