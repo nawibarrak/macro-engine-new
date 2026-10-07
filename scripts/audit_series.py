@@ -59,6 +59,8 @@ def fetch(src, days=60):
 def dev(a, b, mode):
     return (a / b - 1) * 100 if mode == "pct" else a - b
 
+INFORMATIONAL = {"WTI"}   # keputusan 2026-10-07 (KONSEP.md): pembanding spot tidak boleh menutup gerbang
+
 def run_cross():
     for row in CROSS:
         sid, name, L, R, mode, tol = row[:6]; arb = row[6] if len(row) > 6 else None
@@ -95,6 +97,8 @@ def run_cross():
                         det += f". Pembanding ketiga {arb[1]}, perubahan {cm[0][5:]} sampai {cm[-1][5:]}: {L[1]} {ch(a):+.1f}%, {R[1]} {ch(b):+.1f}%, {arb[1]} {ch(c3):+.1f}%"
                 except Exception as e:
                     det += f". Pembanding ketiga {arb[1]} gagal diambil ({type(e).__name__})"
+        if sid in INFORMATIONAL and st == "fail":
+            st = "warn"; det += ". Hanya peringatan: spot lawan futures punya basis struktural dan sumber spot terlambat; verifikasi seri ini lewat uji konsistensi"
         add("silang", name, [sid], st, det, tol, links)
 
 def run_bls():
@@ -148,6 +152,7 @@ def run_consistency():
             ("Korelasi DXY dan EUR/USD harus negatif (90 hari)", "DXY", "EURUSD", 1, "neg", -0.3, 0.0),
             ("Korelasi S&P 500 dan SPY harus sangat positif", "SPX", "SPY", 1, "pos", 0.9, 0.5),
             ("Korelasi emas futures dan GLD harus sangat positif", "XAUUSD", "GLD", 1, "pos", 0.9, 0.5),
+            ("Korelasi WTI dan Brent harus sangat positif", "WTI", "BRENT", 1, "pos", 0.8, 0.4),
             ("Selisih kredit HY naik ketika HYG turun (perubahan 5 hari, negatif)", "HYOAS", "HYG", 5, "neg", -0.2, 0.2)]:
         x, y = ser(a), ser(b)
         ra, rb = rets(x, y, step)
@@ -165,7 +170,7 @@ def run_consistency():
                     st = "pass"; extra += " (lolos: selisih jam penutupan antar-pasar melemahkan korelasi harian, bukan data rusak)"
         add("konsistensi", name, [a, b], st, f"korelasi harian {c:+.2f} dari {len(ra)} pengamatan{extra}")
     # rasio yang seharusnya stabil: emas/GLD, SPX/SPY
-    for name, a, b in [("Rasio emas futures terhadap GLD stabil", "XAUUSD", "GLD"), ("Rasio S&P 500 terhadap SPY stabil", "SPX", "SPY")]:
+    for name, a, b in [("Rasio emas futures terhadap GLD stabil", "XAUUSD", "GLD"), ("Rasio WTI terhadap Brent stabil", "WTI", "BRENT"), ("Rasio S&P 500 terhadap SPY stabil", "SPX", "SPY")]:
         x, y = ser(a), ser(b); common = sorted(set(x) & set(y))[-60:]
         if len(common) < 20: add("konsistensi", name, [a, b], "na", "data belum cukup"); continue
         r = [x[d] / y[d] for d in common if y[d]]; med = sorted(r)[len(r) // 2]; dv = (r[-1] / med - 1) * 100

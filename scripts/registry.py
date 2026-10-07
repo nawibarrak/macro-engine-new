@@ -21,6 +21,7 @@ REGISTRY = [
  S("USDJPY", "USD/JPY", "Harga", "harian", [("yf", "JPY=X"), ("fred", "DEXJPUS")], "JPY", 50, 250, True),
  S("EURUSD", "EUR/USD", "Harga", "harian", [("yf", "EURUSD=X"), ("fred", "DEXUSEU")], "USD", 0.6, 1.6, True),
  S("DXY", "Indeks Dolar AS (DXY)", "Harga", "harian", [("yf", "DX-Y.NYB"), ("fred", "DTWEXBGS")], "indeks", 70, 140),
+ S("BRENT", "Minyak mentah Brent (futures BZ)", "Harga", "harian", [("yf", "BZ=F"), ("fred", "DCOILBRENTEU")], "USD/bbl", 20, 250),
  S("COPPER", "Tembaga (futures HG)", "Harga", "harian", [("yf", "HG=F")], "USD/lb", 1, 10),
  S("NDX", "Nasdaq 100", "Harga", "harian", [("yf", "^NDX"), ("fred", "NASDAQ100")], "indeks", 2000, 60000),
  S("BTC", "Bitcoin", "Harga", "harian", [("yf", "BTC-USD"), ("fred", "CBBTCUSD")], "USD", 1000, 1000000),

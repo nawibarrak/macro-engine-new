@@ -65,3 +65,5 @@ Basi = lewat batas umur. Ditahan = lompatan ekstrem menunggu konfirmasi. Silang-
 - 2026-10-05 Kaggle dan Colab dikeluarkan dari pipeline utama (K4).
 - 2026-10-05 Masukan eksternal diadopsi: circuit breaker data, panel kontribusi faktor, label penuh tanpa singkatan, dua aliran cepat/lambat, tombol auto-pilot off.
 - 2026-10-05 Audit data (tahap 2b) dikerjakan SEBELUM tahap 3 karena kesimpulan dan sinyal bergantung pada data. Kanon konsep dan pemeriksa otomatis ditambahkan atas permintaan pemilik agar konsisten antar sesi.
+- 2026-10-07 WTI: pemilik memeriksa manual (Finviz futures per jam dan TradingView SPOTCRUDE): CL=F selaras dengan pasar; FRED DCOILWTICO (spot EIA) terlambat sekitar seminggu dan melompat pada pekan pergantian kontrak, jadi tidak layak menjadi hakim harian. Keputusan: selisih FRED-spot vs futures hanya PERINGATAN (basis struktural), tidak menutup gerbang. Verifikasi WTI beralih ke konsistensi dengan Brent (korelasi dan rasio). Seri BRENT ditambah (tidak kunci).
+- 2026-10-07 Diusulkan, menunggu persetujuan pemilik: gerbang per aset (data pasar umum menutup semua aset; data khusus aset hanya menutup aset itu). Belum berlaku.

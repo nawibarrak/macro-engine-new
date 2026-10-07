@@ -1,6 +1,6 @@
 # Progres (diperbarui tiap tahap; check_concept memeriksa angka seri)
 
-Jumlah seri registry: 67
+Jumlah seri registry: 68
 
 | Tahap | Status | Bukti | Belum terbukti |
 |---|---|---|---|
