@@ -16,7 +16,7 @@ def rd(p):
 
 SKIP = {".git", "__pycache__", "series", "site"}
 INDEX = rd("index.html") or ""
-LEGACY = {"scripts/l2_probability.py", ".github/workflows/prob.yml", "requirements-l2.txt", "lanjutan.html", "README.md", "docs/KONSEP.md", "docs/PROGRESS.md", "scripts/check_concept.py"}
+LEGACY = {"docs/KONSEP.md", "docs/PROGRESS.md", "scripts/check_concept.py"}   # menyebut Kaggle/Colab hanya sebagai catatan keputusan atau pola pemeriksa
 
 # K1: tiap panel berlabel tiga lapis
 for m in re.finditer(r'<section class="p" id="([^"]+)">(.*?)</section>', INDEX, re.S):
@@ -57,7 +57,7 @@ for root, _, files in os.walk(ROOT):
         if not rel.endswith((".py", ".yml", ".html", ".txt", ".md")): continue
         t = rd(rel) or ""
         if re.search(r"kaggle|colab", t, re.I):
-            (N if rel in LEGACY else V)("K4", f"{rel} menyebut Kaggle/Colab" + (" (sisa lama, diganti di tahap 4)" if rel in LEGACY else ""))
+            (N if rel in LEGACY else V)("K4", f"{rel} menyebut Kaggle/Colab" + (" (catatan dokumentasi, bukan kode)" if rel in LEGACY else ""))
 
 # K5: tanpa singkatan sebagai label metrik makro
 for pat in (r">\s*[GIPLR]\s*<", r"\bG\s*[×x]\s*I\b", r"['\"]\s*[GI]\s*['\"]\s*,\s*['\"](?:Pertumbuhan|Inflasi)"):
@@ -95,6 +95,33 @@ if "scripts/pipeline.py" not in wf: V("PIPE", "feed.yml tidak memanggil scripts/
 if "cp *.html" not in wf: V("PIPE", "feed.yml tidak menyalin semua *.html (lanjutan.html tidak ikut deploy)")
 for need in ("index.html", "lanjutan.html"):
     if not os.path.exists(os.path.join(ROOT, need)): V("PIPE", f"{need} hilang")
+
+# UNUSED (K16): tidak ada berkas skrip yang tidak dipakai
+import glob
+pipe_src = rd("scripts/pipeline.py") or ""
+all_py = {os.path.basename(f)[:-3]: rd(os.path.relpath(f, ROOT)) or "" for f in glob.glob(os.path.join(ROOT, "scripts", "*.py"))}
+for name in sorted(all_py):
+    if name == "pipeline": continue
+    used_by_pipe = f"scripts/{name}.py" in pipe_src
+    imported = any(re.search(rf"^\s*(import|from)\s+[^\n]*\b{name}\b", src, re.M) for n2, src in all_py.items() if n2 != name)
+    if not (used_by_pipe or imported): V("UNUSED", f"scripts/{name}.py tidak dipanggil pipeline.py dan tidak diimpor skrip lain: hapus")
+for f in glob.glob(os.path.join(ROOT, "requirements*.txt")):
+    if os.path.basename(f) != "requirements.txt": V("UNUSED", f"{os.path.basename(f)} tidak dipakai workflow: hapus")
+
+# GATE (K8): gerbang per aset terdaftar lengkap dan dipakai
+try: gcfg = json.loads(rd("config/gates.json") or "")
+except Exception: gcfg = None
+if not gcfg: V("GATE", "config/gates.json hilang atau rusak")
+else:
+    listed = set(gcfg.get("umum", [])) | {i for v in gcfg.get("aset", {}).values() for i in v}
+    for i in sorted(listed):
+        if i not in BY_ID: V("GATE", f"config/gates.json memuat seri '{i}' yang tidak ada di registry")
+    for s in REGISTRY:
+        if s["crit"] and s["id"] not in listed: V("GATE", f"seri kunci {s['id']} tidak terdaftar di config/gates.json (umum atau aset)")
+    for a in ("XAUUSD", "WTI", "SPX", "USDJPY", "EURUSD"):
+        if a not in gcfg.get("aset", {}): V("GATE", f"aset prioritas {a} tidak punya gerbang di config/gates.json")
+    if "scripts/gates.py" not in (rd("scripts/pipeline.py") or ""): V("GATE", "pipeline.py tidak menjalankan scripts/gates.py")
+    if "data/gates.json" not in INDEX: V("GATE", "index.html tidak membaca data/gates.json")
 
 out = dict(generated=dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), violations=viol, notes=notes, series=len(REGISTRY))
 os.makedirs(os.path.join(ROOT, "data"), exist_ok=True)

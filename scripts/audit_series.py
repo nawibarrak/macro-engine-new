@@ -20,14 +20,46 @@ BLS_URL = "https://data.bls.gov/timeseries/"
 def add(kind, name, series, status, detail, tol=None, links=None):
     checks.append(dict(kind=kind, name=name, series=series, status=status, detail=detail, tol=tol, links=links or []))
 
+TREASURY_URL = "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/TextView?type=daily_treasury_yield_curve"
+
 def link(prov, ref):
+    if prov == "treasury": return TREASURY_URL
+    if prov == "nyfed": return "https://www.newyorkfed.org/markets/reference-rates/effr"
     return (FRED_URL if prov == "fred" else YF_URL if prov == "yf" else BLS_URL) + ref
+
+def p_treasury(col, start):
+    """Kurva imbal hasil harian Treasury.gov (sumber resmi). col = nama kolom, mis. '2 Yr'. Format tanggal MM/DD/YYYY."""
+    import requests, csv, io
+    out = {}
+    for yr in sorted({int(start[:4]), NOW().year}):
+        r = requests.get(f"https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/{yr}/all",
+                         params={"type": "daily_treasury_yield_curve", "field_tdr_date_value": yr, "page": "", "_format": "csv"}, timeout=40)
+        r.raise_for_status()
+        for row in csv.DictReader(io.StringIO(r.text)):
+            try:
+                m, d, y = row["Date"].split("/"); v = float(row[col])
+            except (KeyError, ValueError): continue
+            out[f"{y}-{m}-{d}"] = v
+    return sorted([d, v] for d, v in out.items() if d >= start)
+
+def p_nyfed(_ref, start):
+    """Suku bunga efektif Fed (EFFR) harian dari NY Fed Markets API, tanpa kunci."""
+    import requests
+    r = requests.get("https://markets.newyorkfed.org/api/rates/unsecured/effr/last/30.json", timeout=40)
+    r.raise_for_status()
+    out = {}
+    for x in r.json()["refRates"]:
+        if x.get("type", "EFFR") == "EFFR": out[x["effectiveDate"]] = float(x["percentRate"])
+    return sorted([d, v] for d, v in out.items() if d >= start)
+
+AUDIT_PROV = {"treasury": p_treasury, "nyfed": p_nyfed}   # sumber khusus audit; sisanya memakai DL.PROVIDERS
 
 # ---------- 1. silang-sumber ----------
 # (id seri, nama, sumber kiri, sumber kanan, mode, toleransi)  mode: pct = selisih persen, abs = selisih absolut
 CROSS = [
  ("SPX", "S&P 500: FRED vs Yahoo", ("fred", "SP500"), ("yf", "^GSPC"), "pct", 0.5),
  ("NDX", "Nasdaq 100: Yahoo vs FRED", ("yf", "^NDX"), ("fred", "NASDAQ100"), "pct", 0.5),
+ ("US02Y", "Yield 2 tahun: FRED vs Treasury.gov (sumber resmi)", ("fred", "DGS2"), ("treasury", "2 Yr"), "abs", 0.03),
  ("US10Y", "Yield 10 tahun: FRED vs Yahoo", ("fred", "DGS10"), ("yf", "^TNX"), "abs", 0.08),
  ("VIX", "VIX: FRED vs Yahoo", ("fred", "VIXCLS"), ("yf", "^VIX"), "pct", 3.0),
  ("WTI", "WTI: FRED (spot) vs Yahoo (futures)", ("fred", "DCOILWTICO"), ("yf", "CL=F"), "pct", 3.0, ("yf", "USO")),
@@ -53,7 +85,7 @@ def p_bls(sid):
 
 def fetch(src, days=60):
     start = (NOW().date() - dt.timedelta(days=days)).isoformat()
-    pts, _ = DL.clean(DL.PROVIDERS[src[0]](src[1], start), dict(lo=None, hi=None))
+    pts, _ = DL.clean((AUDIT_PROV.get(src[0]) or DL.PROVIDERS[src[0]])(src[1], start), dict(lo=None, hi=None))
     return dict((d, v) for d, v in pts)
 
 def dev(a, b, mode):
@@ -100,6 +132,29 @@ def run_cross():
         if sid in INFORMATIONAL and st == "fail":
             st = "warn"; det += ". Hanya peringatan: spot lawan futures punya basis struktural dan sumber spot terlambat; verifikasi seri ini lewat uji konsistensi"
         add("silang", name, [sid], st, det, tol, links)
+
+def run_fed():
+    """Suku bunga Fed: FED (batas atas target) harus cocok dengan seri target bawah/atas, kisaran 25 bp, dan suku bunga efektif di dalamnya."""
+    name = "Target suku bunga Fed konsisten (kisaran 25 bp, suku bunga efektif di dalamnya)"
+    try:
+        up, lo = (fetch(("fred", i), 30) for i in ("DFEDTARU", "DFEDTARL"))
+    except Exception as e:
+        add("konsistensi", name, ["FED"], "na", f"tidak bisa diambil: {type(e).__name__}: {str(e)[:90]}"); return
+    src = "NY Fed (independen)"
+    try: ef = fetch(("nyfed", "EFFR"), 30)
+    except Exception as e:
+        src = f"FRED DFF (NY Fed gagal: {type(e).__name__})"
+        try: ef = fetch(("fred", "DFF"), 30)
+        except Exception as e2:
+            add("konsistensi", name, ["FED"], "na", f"suku bunga efektif tidak bisa diambil: {type(e2).__name__}"); return
+    cm = sorted(set(up) & set(lo) & set(ef))
+    if not cm: add("konsistensi", name, ["FED"], "na", "tidak ada tanggal bersama"); return
+    d = cm[-1]; w = up[d] - lo[d]; inside = lo[d] - 0.10 <= ef[d] <= up[d] + 0.10
+    own = ser("FED").get(d)
+    st = "fail" if (not inside or abs(w - 0.25) > 0.01 or (own is not None and abs(own - up[d]) > 0.001)) else "pass"
+    add("konsistensi", name, ["FED"], st,
+        f"{d}: target {lo[d]:.2f} sampai {up[d]:.2f} (lebar {w:.2f}), suku bunga efektif {ef[d]:.2f} ({src})" + ("" if own is None else f", seri FED {own:.2f}"),
+        links=[link("fred", "DFEDTARU"), link("fred", "DFEDTARL"), link("nyfed", "EFFR")])
 
 def run_bls():
     for sid, bid, mode, tol in BLS:
@@ -226,7 +281,7 @@ def summarize():
                 gate=dict(open=not blocked, blocked_by=blocked, unverified_crit=unver), checks=checks)
 
 def main():
-    for f in (run_cross, run_bls, run_consistency, run_health):
+    for f in (run_cross, run_bls, run_consistency, run_fed, run_health):
         try: f()
         except Exception as e: add("sistem", f"{f.__name__} error", [], "warn", f"{type(e).__name__}: {str(e)[:120]}")
     res = summarize()

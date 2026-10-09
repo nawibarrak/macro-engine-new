@@ -10,6 +10,7 @@ STEPS = [
     ("feed lama (rilis, COT, shock)", "scripts/fetch_feed.py", True),
     ("lapisan data", "scripts/data_layer.py", True),
     ("audit seri", "scripts/audit_series.py", True),
+    ("gerbang per aset", "scripts/gates.py", False),
     ("audit feed lama", "scripts/audit_feed.py", False),
     ("estimasi beta", "scripts/estimate_betas.py", True),
     ("pemeriksa konsep", "scripts/check_concept.py", False),

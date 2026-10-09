@@ -25,7 +25,7 @@ Baris bertanda [uji] diperiksa otomatis oleh scripts/check_concept.py pada setia
 - K5 [uji] Tidak ada singkatan sebagai label metrik makro: tulis "Pertumbuhan" dan "Inflasi", bukan G atau I.
 - K6 Setiap kesimpulan menampilkan bukti pendukung dan ambang yang dipakai (berlaku dari tahap 3).
 - K7 Semua ambang keputusan hidup di config/thresholds.json beserta alasan dan status pengujiannya. Tidak ada ambang tersembunyi di kode.
-- K8 Bawaan adalah HOLD. Sinyal keluar hanya bila SEMUA gerbang lolos: gerbang data, audit silang-sumber, skor, keyakinan, kepastian rezim.
+- K8 [uji: GATE] Bawaan adalah HOLD. Sinyal keluar hanya bila SEMUA gerbang lolos: gerbang data, audit silang-sumber, skor, keyakinan, kepastian rezim.
 - K9 [uji] Proksi selalu berlabel "proksi". Angka yang tidak bisa diverifikasi tidak ditampilkan sebagai fakta.
 - K10 Kata "terverifikasi" hanya boleh muncul bila ada bukti di data/audit_series.json.
 - K11 [uji] Kunci API hanya di GitHub Secrets. Tidak ada kunci di berkas repo.
@@ -33,6 +33,7 @@ Baris bertanda [uji] diperiksa otomatis oleh scripts/check_concept.py pada setia
 - K13 Keputusan berbasis aturan yang bisa diuji (backtest, jurnal, evaluasi 1/4/12 minggu), bukan penilaian LLM.
 - K14 Kegagalan sumber tidak boleh diam-diam menghasilkan angka: data lama dipakai dan ditandai, atau seri ditahan.
 - K15 Auto-pilot bisa dimatikan: ada tombol yang mengembalikan sistem menjadi agregator data murni (dibangun di tahap 5).
+- K16 [uji: UNUSED] Tidak ada berkas yang tidak dipakai: skrip harus dipanggil pipeline.py atau diimpor skrip lain; berkas yang tidak lagi dipakai dihapus saat itu juga (hemat token dan mudah diaudit).
 
 ## Pipeline
 sumber -> kumpulkan (penyedia berlapis, cache, asal data) -> bersihkan (satuan, vintage, batas wajar, lompatan) ->
@@ -57,7 +58,7 @@ Urutan wajib. Tahap berikutnya tidak dimulai sebelum tahap sebelumnya lulus audi
 5. Bila perlu menyimpang dari konsep: tulis dulu di Log keputusan, minta persetujuan pemilik, baru ubah kode.
 
 ## Istilah
-Seri = satu deret waktu di registry. Gerbang data = semua seri kunci segar dan lolos audit. Proksi = pengganti terdekat bila angka resmi tidak gratis.
+Seri = satu deret waktu di registry. Gerbang data = untuk satu aset: semua masukan umum DAN masukan aset itu segar dan lolos audit (config/gates.json). Proksi = pengganti terdekat bila angka resmi tidak gratis.
 Basi = lewat batas umur. Ditahan = lompatan ekstrem menunggu konfirmasi. Silang-sumber = membandingkan dua sumber independen untuk besaran yang sama.
 
 ## Log keputusan
@@ -68,3 +69,6 @@ Basi = lewat batas umur. Ditahan = lompatan ekstrem menunggu konfirmasi. Silang-
 - 2026-10-07 WTI: pemilik memeriksa manual (Finviz futures per jam dan TradingView SPOTCRUDE): CL=F selaras dengan pasar; FRED DCOILWTICO (spot EIA) terlambat sekitar seminggu dan melompat pada pekan pergantian kontrak, jadi tidak layak menjadi hakim harian. Keputusan: selisih FRED-spot vs futures hanya PERINGATAN (basis struktural), tidak menutup gerbang. Verifikasi WTI beralih ke konsistensi dengan Brent (korelasi dan rasio). Seri BRENT ditambah (tidak kunci).
 - 2026-10-07 Diusulkan, menunggu persetujuan pemilik: gerbang per aset (data pasar umum menutup semua aset; data khusus aset hanya menutup aset itu). Belum berlaku.
 - 2026-10-07 Koreksi uji WTI/Brent: uji 'rasio stabil' (dari pasangan emas/GLD) salah untuk dua patokan minyak berbeda karena selisihnya bergerak dengan fundamental (data asli: rasio 0,888 vs median 0,936 menjadi gagal). Diganti batas kewajaran struktural: pass bila rasio WTI/Brent 0,78 sampai 1,00; peringatan 0,70 sampai 0,78 atau 1,00 sampai 1,05; gagal di luar itu. Batas ditetapkan dari struktur pasar (WTI umumnya di bawah Brent), bukan dari satu pembacaan. Uji korelasi tetap menjadi penjaga utama.
+- 2026-10-07 DISETUJUI pemilik: gerbang data PER ASET. Gerbang umum (masukan pasar-luas: US02Y, US10Y, FED, VIX, HYOAS) menutup semua aset; masukan khusus aset hanya menutup aset itu. Daftar ada di config/gates.json; setiap seri kunci wajib terdaftar di sana (diperiksa check_concept, aturan GATE). Audit tambahan dikerjakan SEBELUM tahap 3: US02Y dibanding Treasury.gov, FED diperiksa terhadap batas target (suku bunga efektif harus di dalam kisaran). Audit klaim pengangguran ke DOL ditunda sampai format berkas DOL terlihat (tidak bisa diuji dari sandbox).
+- 2026-10-07 Saran sumber audit dari pihak luar ditinjau. Diterima: NY Fed Markets API (EFFR harian, tanpa kunci) sebagai pembanding independen target Fed. Ditolak: FRED sebagai 'cadangan' untuk seri yang memang bersumber dari FRED (sirkular, bukan verifikasi); Treasury fiscaldata avg_interest_rates (itu bunga rata-rata utang bulanan, bukan yield 2 tahun); Alpha Vantage WTI (turunan EIA, sama dengan FRED); rumus HYG/IEF sebagai skor stres (bukan spread kredit; HYG vs HYOAS sudah diuji korelasinya). Ditunda: emas dari Alpha Vantage atau sejenisnya (butuh kunci di GitHub Secrets dan pembatasan frekuensi pemanggilan). Kegagalan audit menutup gerbang, bukan diam-diam beralih ke sumber cadangan (K14).
+- 2026-10-08 Pemilik menetapkan: berkas yang tidak dipakai dihapus dan tidak boleh dibuat (K16). Dihapus: scripts/l2_probability.py, requirements-l2.txt, .github/workflows/prob.yml, data/prob_export.json, serta kartu dan kode probabilitas Kaggle di lanjutan.html. Probabilitas harian dibangun ulang di tahap 4 tanpa Kaggle.

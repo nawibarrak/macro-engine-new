@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Macro Engine Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#EEF1F4;--panel:#FFFFFF;--panel2:#E7ECF0;--ink:#13202B;--mute:#55646F;--line:#CFD7DE;
+  --s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--up:#2a78d6;--down:#e34948;--mid:#f0efec;
+  --good:#1B7443;--good-soft:#D9EFE2;--warn:#8F5E00;--warn-soft:#F6E8C8;--bad:#AE2A21;--bad-soft:#F6D9D6;
+  --accent:#0C6670;--accent-soft:#D6EBED;
+  --f-ui:"IBM Plex Sans",system-ui,sans-serif;--f-num:"IBM Plex Mono",ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  color-scheme:dark;--bg:#0F171E;--panel:#17222B;--panel2:#1F2D38;--ink:#E4EBF0;--mute:#93A4B1;--line:#2B3C48;
+  --s1:#3987e5;--s2:#d95926;--s3:#199e70;--up:#3987e5;--down:#e66767;--mid:#383835;
+  --good:#5CC48A;--good-soft:#173626;--warn:#E3B04B;--warn-soft:#3A2E12;--bad:#F08A82;--bad-soft:#3F1B18;
+  --accent:#58B9C3;--accent-soft:#17383D}}
+:root[data-theme="dark"]{
+  color-scheme:dark;--bg:#0F171E;--panel:#17222B;--panel2:#1F2D38;--ink:#E4EBF0;--mute:#93A4B1;--line:#2B3C48;
+  --s1:#3987e5;--s2:#d95926;--s3:#199e70;--up:#3987e5;--down:#e66767;--mid:#383835;
+  --good:#5CC48A;--good-soft:#173626;--warn:#E3B04B;--warn-soft:#3A2E12;--bad:#F08A82;--bad-soft:#3F1B18;
+  --accent:#58B9C3;--accent-soft:#17383D}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:56px}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 var(--f-ui);padding-bottom:48px}
+a{color:var(--accent)}
+.wrap{max-width:1240px;margin:0 auto;padding-inline:16px}
+.top{position:sticky;top:0;z-index:20;background:var(--panel);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;gap:14px;min-height:48px;flex-wrap:wrap}
+.top h1{font-size:16px;margin:0;font-weight:600;white-space:nowrap}
+.top nav{display:flex;gap:2px;overflow-x:auto;flex:1;scrollbar-width:none}
+.top nav a{padding:8px 10px;color:var(--mute);text-decoration:none;font-weight:500;white-space:nowrap;border-radius:4px}
+.top nav a:hover{background:var(--panel2);color:var(--ink)}
+button,.btn{font:inherit;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:5px 10px;cursor:pointer}
+button:hover{background:var(--panel2)}
+button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
+main{display:flex;flex-direction:column;gap:18px;padding-top:16px}
+section.p{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px}
+.ph{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;margin-bottom:10px}
+.ph h2{font-size:17px;margin:0;font-weight:600}
+.ph .sub{color:var(--mute);font-size:13px;flex:1;min-width:200px}
+.tag{font:500 10.5px/1 var(--f-num);padding:4px 7px;border-radius:3px;letter-spacing:.04em}
+.t-m{background:var(--accent-soft);color:var(--accent)}.t-i{background:var(--warn-soft);color:var(--warn)}.t-d{background:var(--good-soft);color:var(--good)}
+.fq{font:500 10.5px/1 var(--f-ui);padding:3px 6px;border-radius:3px;background:var(--panel2);color:var(--mute);white-space:nowrap}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.mute{color:var(--mute)}.small{font-size:12.5px}
+/* status */
+.bar{display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center}
+.bar .it{display:flex;flex-direction:column;gap:1px;min-width:120px}
+.bar .it b{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);font-weight:500}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:12px;font-weight:600;font-size:12.5px}
+.c-ok{background:var(--good-soft);color:var(--good)}.c-warn{background:var(--warn-soft);color:var(--warn)}.c-bad{background:var(--bad-soft);color:var(--bad)}
+/* cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:10px}
+.card{border:1px solid var(--line);border-radius:6px;padding:10px 11px;background:var(--panel);text-align:left;display:flex;flex-direction:column;gap:3px;min-width:0;width:100%}
+.card:hover,.card[aria-pressed="true"]{border-color:var(--accent);background:var(--panel)}
+.card[aria-pressed="true"]{box-shadow:0 0 0 1px var(--accent)}
+.card .nm{font-size:12.5px;color:var(--mute);display:flex;justify-content:space-between;gap:6px}
+.card .big{font:500 21px/1.2 var(--f-num);font-variant-numeric:tabular-nums}
+.card .chg{display:flex;gap:10px;flex-wrap:wrap;font:12px var(--f-num)}
+.card .chg span{white-space:nowrap}
+.card svg{width:100%;height:34px;display:block;margin-top:2px}
+.card .ft{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:11.5px;color:var(--mute)}
+.up{color:var(--up)}.dn{color:var(--down)}
+.dt{margin-top:12px;border-top:1px solid var(--line);padding-top:12px}
+.dt h3{margin:0 0 4px;font-size:15px}
+.rng{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 4px}
+.chart{position:relative;width:100%}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.lg{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;margin-bottom:4px}
+.lg i{display:inline-block;width:14px;height:0;border-top:2px solid;vertical-align:middle;margin-right:5px}
+.tip{position:absolute;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:6px 8px;font-size:12.5px;box-shadow:0 2px 8px rgba(0,0,0,.18);z-index:5;min-width:120px;display:none}
+.tip .d{color:var(--mute);font-size:11.5px;margin-bottom:2px}
+.tip .r{display:flex;gap:8px;align-items:center;justify-content:space-between}
+.tip .r b{font:500 13px var(--f-num)}
+.tip .k{display:inline-block;width:10px;border-top:2px solid;margin-right:4px}
+/* grids */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:900px){.g2,.g3{grid-template-columns:1fr}}
+.g2>div,.g3>div{min-width:0}
+@media(max-width:600px){.top .wrap{gap:4px 8px;padding-block:6px}.top nav{order:3;flex:1 1 100%}.top h1{flex:1}.cards{grid-template-columns:1fr 1fr;gap:8px}.card{padding:8px}.card .big{font-size:18px}.card .chg{font-size:11px;gap:4px 8px}.pairs .row,.cot .row{grid-template-columns:1fr;gap:4px}.wrap{padding-inline:12px}section.p{padding:12px}}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{text-align:left;padding:6px 8px;border-top:1px solid var(--line);vertical-align:middle}
+th{font:500 11px/1.3 var(--f-ui);letter-spacing:.05em;text-transform:uppercase;color:var(--mute);background:var(--panel2);border-top:0;white-space:nowrap}
+td.r,th.r{text-align:right}
+td.hm{text-align:center;font:500 12.5px var(--f-num);min-width:70px}
+h3.sh{font-size:13.5px;margin:0 0 6px;font-weight:600}
+.pairs .row{display:grid;grid-template-columns:minmax(150px,1.3fr) 2fr minmax(105px,.9fr);gap:8px;align-items:center;padding:6px 0;border-top:1px solid var(--line);font-size:13px}
+.pairs .row:first-child{border-top:0}
+.track{position:relative;height:14px;background:var(--panel2);border-radius:3px}
+.track::after{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;border-left:1px solid var(--mute)}
+.track .fill{position:absolute;top:2px;bottom:2px;border-radius:0 3px 3px 0}
+.cot .row{display:grid;grid-template-columns:minmax(120px,1fr) 2.2fr minmax(150px,1.2fr);gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--line);font-size:13px}
+.cot .row:first-child{border-top:0}
+.zone{position:relative;height:14px;border-radius:3px;display:flex;overflow:hidden}
+.zone i{display:block;height:100%}
+.zone i:nth-child(odd){background:var(--panel2)}.zone i:nth-child(even){background:var(--line)}
+.zone .mk{position:absolute;top:-3px;width:4px;height:20px;background:var(--ink);border-radius:2px;box-shadow:0 0 0 2px var(--panel)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:12px}
+.tile{border:1px solid var(--line);border-radius:6px;padding:8px 10px}
+.tile b{display:block;font:500 11px var(--f-ui);letter-spacing:.05em;text-transform:uppercase;color:var(--mute)}
+.tile .v{font:500 20px var(--f-num)}
+.note{background:var(--panel2);border-radius:5px;padding:9px 11px;font-size:12.5px;color:var(--mute)}
+.state{font-weight:600;white-space:nowrap}
+.s-ok{color:var(--good)}.s-basi,.s-ditahan{color:var(--warn)}.s-gagal,.s-mati{color:var(--bad)}
+.foot{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+details summary{cursor:pointer;color:var(--accent);font-size:12.5px;margin-top:6px}
+footer{padding:20px 0;color:var(--mute);font-size:12.5px}
+.empty{color:var(--mute);padding:8px 0}
+</style></head><body>
+<div class="top"><div class="wrap">
+  <h1>Macro Engine Desk</h1>
+  <nav aria-label="Navigasi">
+    <a href="#pasar">Pasar</a><a href="#aliran">Aliran modal</a><a href="#makro">Makro</a><a href="#kebijakan">Kebijakan</a>
+    <a href="#stres">Stres dan likuiditas</a><a href="#posisi">Posisi</a><a href="#kalender">Kalender</a><a href="#sinyal">Sinyal</a><a href="#data">Kesehatan data</a><a href="lanjutan.html">Lanjutan</a>
+  </nav>
+  <button id="rf" type="button">Muat ulang</button><button id="th" type="button" aria-label="Ganti tema">Tema</button>
+</div></div>
+<main class="wrap">
+<section class="p" id="status"><div class="bar" id="bar"><span class="mute">Memuat data…</span></div></section>
+
+<section class="p" id="pasar">
+  <div class="ph"><h2>Pasar</h2><span class="tag t-m">TERUKUR</span><span class="sub">Nilai terakhir, perubahan, dan 90 hari terakhir. Ketuk kartu untuk grafik penuh dan sumbernya.</span></div>
+  <div class="cards" id="cards"></div>
+  <div class="dt" id="detail" hidden></div>
+</section>
+
+<section class="p" id="aliran">
+  <div class="ph"><h2>Aliran modal</h2><span class="tag t-m">TERUKUR</span><span class="sub">Ke mana uang bergerak, dibaca dari kinerja relatif kelas aset dan pasangan risk-on/risk-off. Bukan data aliran dana resmi (itu berbayar); ini proksi dari harga.</span></div>
+  <div class="g2">
+    <div><h3 class="sh">Kinerja kelas aset (%)</h3><div class="tw" id="heat"></div></div>
+    <div><h3 class="sh">Pasangan risk-on / risk-off, 1 bulan</h3><div class="pairs" id="pairs"></div></div>
+  </div>
+</section>
+
+<section class="p" id="makro">
+  <div class="ph"><h2>Makro aktual</h2><span class="tag t-m">TERUKUR</span><span class="sub">Angka sebenarnya dari rilis pertama (FRED), bukan skor. Panah menunjukkan arah dibanding rilis sebelumnya. Frekuensi tertera pada tiap baris.</span></div>
+  <div class="tw" id="macro"></div>
+</section>
+
+<section class="p" id="kebijakan">
+  <div class="ph"><h2>Kebijakan dan suku bunga</h2><span class="tag t-m">TERUKUR</span><span class="sub">Kurva yield AS dan suku bunga bank sentral. Celah aturan Taylor terhadap Fed dan pasar menyusul di tahap 3.</span></div>
+  <div class="g2">
+    <div><h3 class="sh">Kurva yield AS (tenor yang tersedia)</h3><div class="chart" id="curve"></div><div class="small mute" id="curvenote"></div></div>
+    <div><h3 class="sh">Suku bunga kebijakan dunia</h3><div class="tw" id="policy"></div></div>
+  </div>
+</section>
+
+<section class="p" id="stres">
+  <div class="ph"><h2>Stres dan likuiditas</h2><span class="tag t-m">TERUKUR</span><span class="sub">Seberapa tegang pasar dan seberapa longgar uang di sistem. Persentil dihitung terhadap riwayat yang tersedia.</span></div>
+  <div class="tiles" id="tiles"></div>
+  <div class="rng" id="rng2" role="group" aria-label="Rentang grafik"></div>
+  <div class="g3">
+    <div><h3 class="sh">VIX dan VIX 3 bulan</h3><div class="chart" id="ch-vix"></div></div>
+    <div><h3 class="sh">Selisih kredit high-yield (%)</h3><div class="chart" id="ch-hy"></div></div>
+    <div><h3 class="sh">Likuiditas bersih Fed (miliar USD)</h3><div class="chart" id="ch-liq"></div><div class="small mute">Neraca Fed dikurangi kas Treasury (TGA) dan reverse repo.</div></div>
+  </div>
+</section>
+
+<section class="p" id="posisi">
+  <div class="ph"><h2>Posisi spekulan (COT)</h2><span class="tag t-m">TERUKUR</span><span class="sub">Posisi bersih non-komersial (long dikurangi short) terhadap 3 tahun terakhir. Laporan mingguan CFTC, mencerminkan posisi hari Selasa.</span></div>
+  <div class="small mute" style="margin-bottom:6px">Skala persentil: 0–10 ekstrem short · 10–35 condong short · 35–65 seimbang · 65–90 condong long · 90–100 ekstrem long. "Seimbang" berarti di tengah rentang riwayatnya sendiri, bukan netral arah.</div>
+  <div class="cot" id="cot"></div>
+  <div class="note" style="margin-top:8px">Skor risiko pembalikan (kombinasi keekstreman, laju perubahan, dan divergensi harga) dibuat di tahap 3.</div>
+</section>
+
+<section class="p" id="kalender">
+  <div class="ph"><h2>Kalender rilis</h2><span class="tag t-m">TERUKUR</span><span class="sub">Rilis AS yang akan datang beserta konsensus pasar, dan rilis terakhir dengan selisihnya.</span></div>
+  <div class="g2">
+    <div><h3 class="sh">Akan datang</h3><div class="tw" id="cal-up"></div></div>
+    <div><h3 class="sh">Rilis terakhir</h3><div class="tw" id="cal-last"></div></div>
+  </div>
+  <div class="small mute" style="margin-top:6px">Konsensus berasal dari kalender mingguan tidak resmi; bila kosong, sistem memakai rata-rata rilis sebelumnya dan menandainya "proksi".</div>
+</section>
+
+<section class="p" id="sinyal">
+  <div class="ph"><h2>Sinyal fundamental</h2><span class="tag t-d">DIPUTUSKAN</span></div>
+  <div class="note">Sinyal BUY / SELL / HOLD masih memakai mesin lama di halaman <a href="lanjutan.html">Lanjutan</a>. Versi baru (gerbang baru, kepastian rezim, panel kontribusi tiap faktor, jurnal keputusan, tombol auto-pilot off) dibangun di tahap 3 sampai 5. Sampai itu selesai, jangan memperlakukan beranda ini sebagai rekomendasi.</div>
+</section>
+
+<section class="p" id="data">
+  <div class="ph"><h2>Kesehatan data dan legenda</h2><span class="tag t-m">TERUKUR</span><span class="sub">Setiap angka di halaman ini berasal dari baris-baris berikut: sumber, frekuensi, tanggal data terakhir, dan statusnya.</span></div>
+  <div class="note" style="margin-bottom:10px"><b>Frekuensi:</b> harian, mingguan, bulanan, kuartalan (seberapa sering angka baru terbit; data bulanan bertanggal awal bulan dan terbit 2–6 minggu kemudian). <b>Status:</b> ok = segar · basi = lewat batas umur · ditahan = lompatan ekstrem menunggu konfirmasi · gagal = sumber error, data lama dipakai · mati = tidak diperbarui lama. <b>Proksi:</b> pengganti terdekat bila angka resmi tidak gratis. Label TERUKUR = angka dari sumber; DISIMPULKAN = hasil hitungan sistem; DIPUTUSKAN = tindakan.</div>
+  <div class="foot" id="gf" role="group" aria-label="Filter kelompok"></div>
+  <div class="tw"><table id="health"></table></div>
+  <h3 style="margin:16px 0 6px;font-size:15px">Audit silang: apakah angkanya benar?</h3>
+  <div class="note" style="margin-bottom:10px"><b>Kepercayaan:</b> terverifikasi = cocok dengan sumber independen kedua · konsisten = lolos uji hubungan antar-seri tetapi tanpa sumber kedua · sumber tunggal = belum ada pembanding · bermasalah = ada uji gagal (gerbang sinyal tertutup bila seri kritis). Toleransi masih perkiraan awal dan akan disetel dari hasil nyata.</div>
+  <div class="small" id="auditsum" style="margin-bottom:8px"></div>
+  <div class="tw"><table id="audit"></table></div>
+</section>
+<footer>Bukan saran investasi. Sumber: FRED, Yahoo Finance (yfinance), CFTC, DefiLlama, kalender mingguan. Sumber tidak resmi bisa berubah atau berhenti; itulah gunanya kolom status.</footer>
+</main>
+<div class="tip" id="tip"></div>
+<script>
+"use strict";
+/* ---------- util ---------- */
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ts=d=>Date.parse(d+'T00:00:00Z');
+const addDays=(d,n)=>new Date(ts(d)+n*864e5).toISOString().slice(0,10);
+const nf=(v,dec)=>v==null||isNaN(v)?'–':Number(v).toLocaleString('id-ID',{minimumFractionDigits:dec,maximumFractionDigits:dec});
+const sg=(v,dec)=>v==null||isNaN(v)?'–':(v>0?'+':v<0?'−':'')+nf(Math.abs(v),dec);
+const fd=d=>d?new Date(ts(d)).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}):'–';
+const FQ={harian:'harian',mingguan:'mingguan',bulanan:'bulanan',kuartalan:'kuartalan'};
+const fq=f=>`<span class="fq">${FQ[f]||esc(f)}</span>`;
+let B=null,ST=null,FEED=null,CONS=[];
+const S=id=>B&&B.series[id]||null;
+function idx(p,d){let lo=0,hi=p.length-1,r=-1;while(lo<=hi){const m=(lo+hi)>>1;if(p[m][0]<=d){r=m;lo=m+1}else hi=m-1}return r}
+function at(id,d){const s=S(id);if(!s)return null;const i=idx(s.p,d);return i<0?null:s.p[i]}
+function last(id){const s=S(id);return s?s.p[s.p.length-1]:null}
+function chgOver(id,days,kind){
+  const s=S(id);if(!s||s.p.length<2)return null;const p=s.p,L=p[p.length-1];let j;
+  if(days===1)j=p.length-2;else{j=idx(p,addDays(L[0],-days));if(j<0)return null;if(ts(L[0])-ts(p[j][0])>(days+12)*864e5)return null}
+  const a=L[1],b=p[j][1];if(b==null)return null;
+  return kind==='pct'?(b?(a/b-1)*100:null):a-b}
+function pctRank(arr,x){if(!arr.length)return null;let n=0;for(const v of arr)if(v<=x)n++;return n/arr.length*100}
+function derive(id,mode){
+  const s=S(id);if(!s)return[];const p=s.p,o=[];
+  for(let i=0;i<p.length;i++){
+    if(mode==='lvl'){o.push(p[i]);continue}
+    if(mode==='mom'){if(i&&p[i-1][1])o.push([p[i][0],(p[i][1]/p[i-1][1]-1)*100]);continue}
+    if(mode==='diff1'){if(i)o.push([p[i][0],p[i][1]-p[i-1][1]]);continue}
+    if(mode==='ma4'){if(i>=3)o.push([p[i][0],(p[i][1]+p[i-1][1]+p[i-2][1]+p[i-3][1])/4]);continue}
+    if(mode==='yoy'){const t=addDays(p[i][0],-365),j=idx(p,t);
+      if(j>=0&&Math.abs(ts(p[j][0])-ts(t))<40*864e5&&p[j][1])o.push([p[i][0],(p[i][1]/p[j][1]-1)*100])}
+  }return o}
+const cutDays=(pts,days)=>{if(!days||!pts.length)return pts;const c=addDays(pts[pts.length-1][0],-days);const i=idx(pts,c);return pts.slice(Math.max(0,i))};
+const arrow=v=>v==null?'':v>0?'▲':v<0?'▼':'■';
+const cls=v=>v>0?'up':v<0?'dn':'';
+const stText=s=>({ok:'ok',basi:'basi',ditahan:'ditahan',gagal:'gagal',mati:'mati'}[s]||s);
+
+/* ---------- grafik ---------- */
+const tip=$('#tip');
+function niceStep(r){const e=Math.pow(10,Math.floor(Math.log10(r)));const f=r/e;return(f<1.5?1:f<3?2:f<7?5:10)*e}
+function sparkSVG(pts,color){
+  if(!pts||pts.length<2)return'';const W=200,H=34,v=pts.map(p=>p[1]);let lo=Math.min(...v),hi=Math.max(...v);if(hi===lo){hi+=1;lo-=1}
+  const x=i=>i/(pts.length-1)*(W-6)+3,y=u=>H-4-(u-lo)/(hi-lo)*(H-8);
+  const d=pts.map((p,i)=>(i?'L':'M')+x(i).toFixed(1)+','+y(p[1]).toFixed(1)).join('');
+  return`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><path d="${d}" fill="none" style="stroke:${color||'var(--s1)'}" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>`}
+function lineChart(host,sers,o){
+  o=o||{};host.innerHTML='';host.style.position='relative';
+  const H=o.h||230,W=Math.max(260,host.clientWidth||600),m={l:o.ml||46,r:12,t:8,b:22};
+  const all=sers.map(s=>({...s,pts:cutDays(s.pts,o.days)})).filter(s=>s.pts.length>1);
+  if(!all.length){host.innerHTML='<div class="empty">Data tidak tersedia untuk grafik ini.</div>';return}
+  if(all.length>1){const lg=document.createElement('div');lg.className='lg';
+    all.forEach(s=>{const sp=document.createElement('span');sp.innerHTML=`<i style="border-color:${s.color}"></i>`;sp.append(s.name);lg.append(sp)});host.append(lg)}
+  const t0=Math.min(...all.map(s=>ts(s.pts[0][0]))),t1=Math.max(...all.map(s=>ts(s.pts[s.pts.length-1][0])));
+  let lo=Infinity,hi=-Infinity;all.forEach(s=>s.pts.forEach(p=>{if(p[1]<lo)lo=p[1];if(p[1]>hi)hi=p[1]}));
+  if(o.zero){lo=Math.min(lo,0);hi=Math.max(hi,0)}
+  const pad=(hi-lo)*.08||1;lo-=pad;hi+=pad;
+  const X=t=>m.l+(t-t0)/((t1-t0)||1)*(W-m.l-m.r),Y=v=>m.t+(1-(v-lo)/(hi-lo))*(H-m.t-m.b);
+  const st=niceStep((hi-lo)/4);let g='',tk='';
+  for(let v=Math.ceil(lo/st)*st;v<=hi;v+=st){const y=Y(v).toFixed(1);g+=`<line x1="${m.l}" x2="${W-m.r}" y1="${y}" y2="${y}" style="stroke:var(--line)" stroke-width="1"/><text x="${m.l-6}" y="${(+y+4).toFixed(1)}" text-anchor="end" font-size="11" style="fill:var(--mute)">${nf(v,o.dec==null?(st<1?2:st<10?1:0):o.dec)}</text>`}
+  for(let k=0;k<=3;k++){const t=t0+(t1-t0)*k/3;const dd=new Date(t);
+    tk+=`<text x="${X(t).toFixed(1)}" y="${H-5}" text-anchor="${k===0?'start':k===3?'end':'middle'}" font-size="11" style="fill:var(--mute)">${dd.toLocaleDateString('id-ID',{month:'short',year:'2-digit',timeZone:'UTC'})}</text>`}
+  let paths='',ends='';
+  all.forEach(s=>{const d=s.pts.map((p,i)=>(i?'L':'M')+X(ts(p[0])).toFixed(1)+','+Y(p[1]).toFixed(1)).join('');
+    paths+=`<path d="${d}" fill="none" style="stroke:${s.color}" stroke-width="2" stroke-linejoin="round"/>`;
+    const e=s.pts[s.pts.length-1];ends+=`<circle cx="${X(ts(e[0])).toFixed(1)}" cy="${Y(e[1]).toFixed(1)}" r="4" style="fill:${s.color};stroke:var(--panel)" stroke-width="2"/>`});
+  const zero=o.zero&&lo<0&&hi>0?`<line x1="${m.l}" x2="${W-m.r}" y1="${Y(0)}" y2="${Y(0)}" style="stroke:var(--mute)" stroke-dasharray="3 3"/>`:'';
+  const wrap=document.createElement('div');
+  wrap.innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.label||'grafik garis')}">${g}${zero}${tk}${paths}${ends}<line id="xh" y1="${m.t}" y2="${H-m.b}" style="stroke:var(--mute);display:none" stroke-width="1"/><rect id="hit" x="${m.l}" y="${m.t}" width="${W-m.l-m.r}" height="${H-m.t-m.b}" fill="transparent" style="touch-action:pan-y"/></svg>`;
+  host.append(wrap);const svg=wrap.firstChild,xh=svg.querySelector('#xh'),hit=svg.querySelector('#hit');
+  const tp=document.createElement('div');tp.className='tip';host.append(tp);
+  function move(ev){const r=svg.getBoundingClientRect(),px=(ev.clientX-r.left)*(W/r.width);
+    const t=t0+(px-m.l)/(W-m.l-m.r)*(t1-t0);const ref=all[0].pts;let best=0,bd=1e18;
+    for(let i=0;i<ref.length;i++){const dd=Math.abs(ts(ref[i][0])-t);if(dd<bd){bd=dd;best=i}}
+    const day=ref[best][0],x=X(ts(day));xh.setAttribute('x1',x);xh.setAttribute('x2',x);xh.style.display='';
+    tp.innerHTML='';const dv=document.createElement('div');dv.className='d';dv.textContent=fd(day);tp.append(dv);
+    all.forEach(s=>{const i=idx(s.pts,day);if(i<0)return;const row=document.createElement('div');row.className='r';
+      const nm=document.createElement('span');nm.innerHTML=`<i class="k" style="border-color:${s.color}"></i>`;nm.append(s.name||'');
+      const b=document.createElement('b');b.textContent=nf(s.pts[i][1],o.dec==null?2:o.dec);row.append(b,nm);tp.append(row)});
+    tp.style.display='block';const left=(x/W)*r.width;tp.style.left=Math.min(Math.max(4,left+12),r.width-tp.offsetWidth-4)+'px';tp.style.top='28px'}
+  hit.addEventListener('pointermove',move);hit.addEventListener('pointerdown',move);
+  hit.addEventListener('pointerleave',()=>{xh.style.display='none';tp.style.display='none'});
+}
+function tableView(sers,dec){
+  const d=document.createElement('details');const sm=document.createElement('summary');sm.textContent='Lihat sebagai tabel (20 data terakhir)';d.append(sm);
+  const base=sers[0].pts.slice(-20).reverse();let h='<div class="tw"><table><thead><tr><th>Tanggal</th>'+sers.map(s=>`<th class="r">${esc(s.name)}</th>`).join('')+'</tr></thead><tbody>';
+  base.forEach(p=>{h+=`<tr><td>${fd(p[0])}</td>`+sers.map(s=>{const i=idx(s.pts,p[0]);return`<td class="r num">${i<0?'–':nf(s.pts[i][1],dec==null?2:dec)}</td>`}).join('')+'</tr>'});
+  d.insertAdjacentHTML('beforeend',h+'</tbody></table></div>');return d}
+
+/* ---------- panel: status ---------- */
+function mins(iso){return iso?Math.max(0,Math.round((Date.now()-Date.parse(iso))/60000)):null}
+function drawStatus(){
+  const g=ST?.gate,c=ST?.counts||{},gen=ST?.generated||B?.generated;
+  const ag=AU?.gate,blk=[...(g?.blocked_by||[]),...(ag?.blocked_by||[]).map(x=>x+' (audit)')];
+  const gateChipOld=!ST?'<span class="chip c-warn">⚠ status belum tersedia</span>':!AU?'<span class="chip c-warn">⚠ Audit belum tersedia, gerbang dianggap tertutup</span>':(g.open&&ag.open)?'<span class="chip c-ok">✓ Terbuka</span>':`<span class="chip c-bad">✕ Tertutup: ${esc(blk.join(', '))}</span>`;
+  const rs=l=>l.map(b=>esc(b.id+': '+b.alasan)).join('; ');
+  const gateChip=!GT?gateChipOld:`<div>${GT.umum.open?'<span class="chip c-ok">✓ Gerbang umum terbuka</span>':`<span class="chip c-bad">✕ Gerbang umum tertutup</span>`}</div>
+    <div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px">${Object.entries(GT.aset).map(([a,g])=>`<span class="chip ${g.open?'c-ok':'c-bad'}">${g.open?'✓':'✕'} ${esc(NAMA_ASET[a]||a)}</span>`).join('')}</div>
+    ${GT.umum.open?'':`<div class="small s-gagal" style="margin-top:4px">Penyebab umum: ${rs(GT.umum.blocked_by)}</div>`}
+    ${Object.entries(GT.aset).filter(([a,g])=>!g.open&&GT.umum.open).map(([a,g])=>`<div class="small s-gagal" style="margin-top:4px">${esc(NAMA_ASET[a]||a)}: ${rs(g.blocked_by)}</div>`).join('')}`;
+  const un=AU?.gate?.unverified_crit||[];
+  const plBad=(PL?.steps||[]).filter(s=>s.status==='gagal').map(s=>s.step),ccV=CC?.violations||[];
+  const sysChips=(plBad.length?`<span class="chip c-bad">✕ Langkah gagal: ${esc(plBad.join(', '))}</span> `:'')+(CC?(ccV.length?`<span class="chip c-bad">✕ ${ccV.length} pelanggaran konsep</span>`:'<span class="chip c-ok">✓ Sesuai konsep</span>'):'<span class="chip c-warn">⚠ pemeriksa konsep belum jalan</span>');
+  const ok=c.ok||0,bad=(c.basi||0)+(c.ditahan||0)+(c.gagal||0)+(c.mati||0);
+  const m=mins(gen);
+  $('#bar').innerHTML=`
+   <div class="it"><b>Gerbang sinyal</b>${gateChip}</div>
+   <div class="it"><b>Data</b><span><span class="num">${ok}</span> segar${bad?` · <span class="num s-basi">${bad}</span> perlu perhatian`:''} dari <span class="num">${ST?.n||Object.keys(B.series).length}</span> seri</span></div>
+   <div class="it"><b>Audit dan konsep</b><span>${AU?`<span class="num">${AU.counts.pass}</span> lolos · <span class="num ${AU.counts.fail?'s-gagal':''}">${AU.counts.fail}</span> gagal · <span class="num ${AU.counts.warn?'s-basi':''}">${AU.counts.warn}</span> peringatan`:'–'}${un.length?`<div class="small s-basi">Seri kritis belum terverifikasi: ${esc(un.join(', '))}</div>`:''}<div style="margin-top:4px">${sysChips}</div>${(ccV.length||plBad.length)?`<ul class="small" style="margin:6px 0 0;padding-left:16px">${ccV.map(v=>`<li><b>${esc(v.rule)}</b> ${esc(v.msg)}</li>`).join('')}${(PL?.steps||[]).filter(s=>s.status==='gagal').map(s=>`<li><b>${esc(s.step)}</b> ${esc(s.detail||'')}</li>`).join('')}</ul>`:''}</span></div>
+   <div class="it"><b>Diperbarui</b><span>${gen?new Date(gen).toLocaleString('id-ID',{dateStyle:'medium',timeStyle:'short'}):'–'} <span class="mute">(${m==null?'?':m} menit lalu)</span></span></div>
+   <div class="it"><b>Jadwal</b><span class="small">Server memperbarui tiap ≤30 menit (GitHub bisa menunda). Halaman memuat ulang tiap 10 menit.</span></div>
+   <div class="it"><b>Mode pasar dan fase</b><span class="small mute">Disimpulkan otomatis di tahap 3</span></div>`}
+
+/* ---------- panel: pasar ---------- */
+const CARDS=[
+ ['SPX','S&P 500','pct',0],['NDX','Nasdaq 100','pct',0],['IHSG','IHSG','pct',0],['NIKKEI','Nikkei 225','pct',0],
+ ['DXY','Indeks dolar AS','pct',2],['US02Y','Yield AS 2 tahun (%)','diff',2],['US10Y','Yield AS 10 tahun (%)','diff',2],['CURVE','Kurva 10Y−2Y (poin)','diff',2],
+ ['REAL10Y','Yield riil 10 tahun (%)','diff',2],['XAUUSD','Emas (USD/oz)','pct',1],['WTI','Minyak WTI (USD)','pct',2],['COPPER','Tembaga (USD/lb)','pct',3],
+ ['BTC','Bitcoin (USD)','pct',0],['VIX','VIX (poin)','diff',2],['USDJPY','USD/JPY','pct',2],['EURUSD','EUR/USD','pct',4],['USDIDR','USD/IDR','pct',0]];
+let selCard=null,selDays=365;
+function drawCards(){
+  const host=$('#cards');host.innerHTML='';
+  CARDS.forEach(([id,name,kind,dec])=>{
+    const s=S(id),b=document.createElement('button');b.type='button';b.className='card';b.setAttribute('aria-pressed',selCard===id);
+    if(!s){b.disabled=true;b.innerHTML=`<div class="nm"><span>${esc(name)}</span></div><div class="big mute">–</div><div class="ft">belum ada data</div>`;host.append(b);return}
+    const L=last(id),u=kind==='pct'?'%':'';const ch=[['1 hari',1],['1 minggu',7],['1 bulan',30]].map(([t,d])=>{const v=chgOver(id,d,kind);
+      return`<span class="${cls(v)}" title="Perubahan ${t}">${arrow(v)} ${sg(v,kind==='pct'?2:2)}${u} <span class="mute">${t.replace('1 ','')}</span></span>`}).join('');
+    const stale=s.st!=='ok'?`<span class="chip c-warn" style="padding:1px 6px;font-size:11px">${stText(s.st)}${s.ag!=null&&s.ag>0?' '+s.ag+' hari':''}</span>`:'';
+    b.innerHTML=`<div class="nm"><span>${esc(name)}</span>${fq(s.f)}</div><div class="big">${nf(L[1],dec)}</div><div class="chg">${ch}</div>${sparkSVG(cutDays(s.p,90))}<div class="ft"><span>${fd(L[0])}</span>${stale}${s.fb?'<span>sumber cadangan</span>':''}</div>`;
+    b.onclick=()=>{selCard=selCard===id?null:id;drawCards();drawDetail()};host.append(b)})}
+function drawDetail(){
+  const host=$('#detail');if(!selCard){host.hidden=true;return}
+  const s=S(selCard),c=CARDS.find(x=>x[0]===selCard);host.hidden=false;
+  host.innerHTML=`<h3>${esc(s.l)}</h3><div class="small mute">Sumber: ${esc(s.pv||'?')} (${esc(s.r||'?')})${s.fb?' · memakai sumber cadangan':''} · ${FQ[s.f]} · data terakhir ${fd(s.a)} · status ${stText(s.st)}${s.un?' · sumber belum teruji penuh':''} · satuan ${esc(s.u)}</div><div class="rng" id="rng1"></div><div class="chart" id="dchart"></div>`;
+  const r=$('#rng1');[['3 bulan',91],['1 tahun',365],['2 tahun',730],['Semua',0]].forEach(([t,d])=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.setAttribute('aria-pressed',selDays===d);b.onclick=()=>{selDays=d;drawDetail()};r.append(b)});
+  const sers=[{name:s.l,pts:s.p,color:'var(--s1)'}];lineChart($('#dchart'),sers,{days:selDays,h:260,dec:c[3]>2?c[3]:2,label:s.l});
+  $('#dchart').append(tableView([{name:s.l,pts:cutDays(s.p,selDays)}],c[3]))}
+
+/* ---------- panel: aliran modal ---------- */
+const HEAT=[['SPY','Saham AS (SPY)'],['NDX','Saham Nasdaq 100'],['EEM','Saham pasar berkembang (EEM)'],['IHSG','Saham Indonesia (IHSG)'],['NIKKEI','Saham Jepang (Nikkei)'],
+ ['TLT','Obligasi AS panjang (TLT)'],['HYG','Obligasi high-yield (HYG)'],['DXY','Dolar AS (DXY)'],['XAUUSD','Emas'],['WTI','Minyak WTI'],['COPPER','Tembaga'],['BTC','Bitcoin']];
+const HC=[['1 hari',1,2],['1 minggu',7,4],['1 bulan',30,8],['3 bulan',91,15]];
+function heatBg(v,sc){if(v==null)return'';const a=Math.min(.6,Math.abs(v)/sc*.6);return`background:color-mix(in srgb,${v>=0?'var(--up)':'var(--down)'} ${(a*100).toFixed(0)}%,transparent)`}
+function drawHeat(){
+  let h='<table><thead><tr><th>Kelas aset</th>'+HC.map(c=>`<th class="r">${c[0]}</th>`).join('')+'</tr></thead><tbody>';
+  HEAT.forEach(([id,n])=>{const s=S(id);h+=`<tr><td>${esc(n)}${s&&s.st!=='ok'?` <span class="small s-basi">(${stText(s.st)})</span>`:''}</td>`;
+    HC.forEach(([t,d,sc])=>{const v=s?chgOver(id,d,'pct'):null;h+=`<td class="hm" style="${heatBg(v,sc)}" title="${esc(n)}, ${t}">${v==null?'–':arrow(v)+' '+sg(v,2)}</td>`});h+='</tr>'});
+  $('#heat').innerHTML=h+'</tbody></table><div class="small mute" style="margin-top:6px">Biru = naik, merah = turun; angka dan panah selalu tertera. Perubahan 1 hari = dibanding data sebelumnya.</div>'}
+function relRet(a,b,days,d){ // kinerja relatif a−b selama `days` berakhir di tanggal d
+  const A=at(a,d),A0=at(a,addDays(d,-days));if(!A||!A0)return null;if(!b)return(A[1]/A0[1]-1)*100;
+  const Bn=at(b,d),B0=at(b,addDays(d,-days));if(!Bn||!B0)return null;return(A[1]/A0[1]-Bn[1]/B0[1])*100}
+function relHist(a,b,days,ratio){
+  const s=S(a);if(!s)return[];const o=[];
+  for(const p of s.p.slice(-320)){
+    if(ratio){const X=at(b,p[0]);if(X&&Math.abs(ts(X[0])-ts(p[0]))<6*864e5)o.push(p[1]/X[1]);continue}
+    const A0=at(a,addDays(p[0],-days));if(!A0)continue;
+    if(!b){o.push((p[1]/A0[1]-1)*100);continue}
+    const Bn=at(b,p[0]),B0=at(b,addDays(p[0],-days));if(!Bn||!B0)continue;
+    o.push((p[1]/A0[1]-Bn[1]/B0[1])*100)}
+  return o}
+const PAIRS=[
+ ['Saham AS vs obligasi AS panjang (SPY−TLT)','SPY','TLT',1],['Kredit berisiko vs Treasury menengah (HYG−IEF)','HYG','IEF',1],
+ ['Pasar berkembang vs saham AS (EEM−SPY)','EEM','SPY',1],['AUD/JPY (naik = selera risiko)','AUDJPY',null,1],
+ ['Tembaga vs emas','COPPER','XAUUSD',1],['VIX dibanding VIX 3 bulan (rasio)','VIX','VIX3M',-1]];
+function drawPairs(){
+  let h='',on=0,tot=0,zs=[];
+  PAIRS.forEach(([name,a,b,dir])=>{
+    const ratio=dir<0;let v=null,hist=[];
+    if(S(a)&&(!b||S(b))){
+      if(ratio){const A=last(a),Bn=last(b);v=A&&Bn?A[1]/Bn[1]:null;hist=relHist(a,b,0,true)}
+      else{const L=last(a);v=L?relRet(a,b,30,L[0]):null;hist=relHist(a,b,30,false)}}
+    if(v==null){h+=`<div class="row"><span>${esc(name)}</span><span class="mute">belum ada data</span><span></span></div>`;return}
+    const mu=hist.reduce((x,y)=>x+y,0)/(hist.length||1),sd=Math.sqrt(hist.reduce((x,y)=>x+(y-mu)*(y-mu),0)/(hist.length||1))||1;
+    const z=(v-mu)/sd,sig=ratio?-z:z,riskOn=ratio?v<1:v>0;tot++;if(riskOn)on++;zs.push(sig);
+    const w=Math.min(1,Math.abs(sig)/2)*50;
+    h+=`<div class="row"><span>${esc(name)}</span><div class="track" role="img" aria-label="${esc(name)}: ${riskOn?'mendukung risk-on':'mendukung risk-off'}"><div class="fill" style="${sig>=0?`left:50%;width:${w}%;background:var(--up)`:`right:50%;width:${w}%;background:var(--down);border-radius:3px 0 0 3px`}"></div></div>
+     <span class="small"><b class="num">${ratio?nf(v,3):sg(v,2)+'%'}</b> · ${riskOn?'risk-on':'risk-off'}</span></div>`});
+  const avg=zs.length?zs.reduce((x,y)=>x+y,0)/zs.length:null;
+  $('#pairs').innerHTML=(tot?`<div class="note" style="margin-bottom:6px"><b>${on} dari ${tot}</b> pasangan mendukung risk-on${avg==null?'':` · rata-rata penyimpangan ${sg(avg,2)} simpangan baku dari kebiasaannya`}. Batang ke kanan (biru) = lebih condong risk-on daripada kebiasaannya, ke kiri (merah) = lebih condong risk-off; panjang penuh = ±2 simpangan baku dari riwayat sendiri. Label risk-on / risk-off di kanan memakai ambang tetap (di atas atau di bawah nol; rasio VIX di bawah atau di atas 1).</div>`:'')+h}
+
+/* ---------- panel: makro ---------- */
+const MAC=[
+ ['Inflasi',[['CPI','Harga konsumen (CPI), tahunan','yoy','%',2],['CPICORE','CPI inti, tahunan','yoy','%',2],['PCECORE','PCE inti, tahunan','yoy','%',2],['PPI','Harga produsen, tahunan','yoy','%',2],['AHE','Upah per jam, tahunan','yoy','%',2]]],
+ ['Tenaga kerja',[['NFP','Penggajian nonpertanian, perubahan bulanan','diff1',' ribu',0],['UNEMP','Tingkat pengangguran','lvl','%',1],['CLAIMS','Klaim pengangguran awal, rata-rata 4 minggu','ma4','',0]]],
+ ['Aktivitas',[['RETAIL','Penjualan ritel, bulanan','mom','%',2],['INDPRO','Produksi industri, tahunan','yoy','%',2],['EMPIRE','Survei manufaktur New York','lvl','',1],['PHILLY','Survei manufaktur Philadelphia','lvl','',1],['GDP','PDB riil AS, kuartalan (tahunan berantai)','lvl','%',1]]]];
+function drawMacro(){
+  let h='<table><thead><tr><th>Indikator</th><th class="r">Terbaru</th><th class="r">Sebelumnya</th><th>Arah</th><th>Frekuensi</th><th>Data</th><th>60 data terakhir</th></tr></thead><tbody>';
+  MAC.forEach(([grp,rows])=>{h+=`<tr><td colspan="7" style="background:var(--panel2);font-weight:600">${grp}</td></tr>`;
+    rows.forEach(([id,name,mode,u,dec])=>{const s=S(id),d=derive(id,mode);
+      if(!s||d.length<2){h+=`<tr><td>${esc(name)}</td><td colspan="6" class="mute">belum ada data</td></tr>`;return}
+      const a=d[d.length-1],p=d[d.length-2],df=a[1]-p[1];
+      h+=`<tr><td>${esc(name)}${s.st!=='ok'?` <span class="small s-basi">(${stText(s.st)})</span>`:''}</td><td class="r num"><b>${nf(a[1],dec)}${u}</b></td><td class="r num mute">${nf(p[1],dec)}${u}</td>
+       <td class="${cls(df)}">${arrow(df)} ${df>0?'naik':df<0?'turun':'tetap'} ${sg(df,dec)}</td><td>${fq(s.f)}</td><td class="small">${fd(a[0])}</td><td style="min-width:110px">${sparkSVG(d.slice(-60))}</td></tr>`})});
+  $('#macro').innerHTML=h+'</tbody></table><div class="small mute" style="margin-top:6px">Warna sengaja netral: kenaikan inflasi atau pengangguran bukan "baik" atau "buruk" dengan sendirinya; penafsirannya di tahap 3.</div>'}
+
+/* ---------- panel: kebijakan ---------- */
+function drawCurve(){
+  const host=$('#curve');host.innerHTML='';const ten=[['2 th','US02Y'],['10 th','US10Y'],['30 th','US30Y']].filter(x=>S(x[1]));
+  if(ten.length<2){host.innerHTML='<div class="empty">Data yield belum lengkap.</div>';return}
+  const ref=last('US10Y')[0],W=Math.max(260,host.clientWidth||520),H=220,m={l:42,r:46,t:10,b:24};
+  const cols=[['Sekarang',0,'var(--s1)'],['1 bulan lalu',30,'var(--s2)'],['1 tahun lalu',365,'var(--s3)']];
+  const dat=cols.map(([n,d,c])=>({n,c,v:ten.map(([_,id])=>{const p=at(id,addDays(ref,-d));return p?p[1]:null})}));
+  const vals=dat.flatMap(x=>x.v).filter(v=>v!=null);let lo=Math.min(...vals),hi=Math.max(...vals);const pd=(hi-lo)*.15||.3;lo-=pd;hi+=pd;
+  const X=i=>m.l+i/(ten.length-1)*(W-m.l-m.r),Y=v=>m.t+(1-(v-lo)/(hi-lo))*(H-m.t-m.b),st=niceStep((hi-lo)/4);
+  let g='';for(let v=Math.ceil(lo/st)*st;v<=hi;v+=st)g+=`<line x1="${m.l}" x2="${W-m.r}" y1="${Y(v)}" y2="${Y(v)}" style="stroke:var(--line)"/><text x="${m.l-6}" y="${Y(v)+4}" text-anchor="end" font-size="11" style="fill:var(--mute)">${nf(v,2)}</text>`;
+  ten.forEach((t,i)=>g+=`<text x="${X(i)}" y="${H-6}" text-anchor="${i===0?'start':i===ten.length-1?'end':'middle'}" font-size="11" style="fill:var(--mute)">${t[0]}</text>`);
+  let paths='',lg='<div class="lg">';
+  dat.forEach(x=>{lg+=`<span><i style="border-color:${x.c}"></i>${x.n}</span>`;const pts=x.v.map((v,i)=>v==null?null:[X(i),Y(v),v]).filter(Boolean);if(pts.length<2)return;
+    paths+=`<path d="${pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+','+p[1].toFixed(1)).join('')}" fill="none" style="stroke:${x.c}" stroke-width="2"/>`+pts.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="4" style="fill:${x.c};stroke:var(--panel)" stroke-width="2"><title>${x.n}: ${nf(p[2],2)}%</title></circle>`).join('')});
+  host.innerHTML=lg+'</div>'+`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Kurva yield AS">${g}${paths}</svg>`;
+  const c=last('CURVE');$('#curvenote').textContent=c?`Selisih 10 tahun minus 2 tahun: ${sg(c[1],2)} poin → kurva ${c[1]<0?'TERBALIK (inversi)':'normal (curam positif)'}. Hanya tenor 2, 10, 30 tahun yang tersedia gratis dari FRED.`:''}
+const POL=[['FED','Federal Reserve (batas atas target)',''],['ECB','Bank Sentral Eropa (suku bunga deposito)',''],['BOE','Bank of England','proksi: SONIA semalam'],['BOJ','Bank of Japan','proksi: antarbank'],['BOC','Bank of Canada','proksi: antarbank 3 bulan'],['RBA','Reserve Bank of Australia','proksi: antarbank 3 bulan'],['SNB','Swiss National Bank','proksi: antarbank 3 bulan']];
+function drawPolicy(){
+  let h='<table><thead><tr><th>Bank sentral</th><th class="r">Suku bunga</th><th class="r">Δ 3 bulan</th><th class="r">Δ 12 bulan</th><th>Frek.</th><th>Data</th></tr></thead><tbody>';
+  POL.forEach(([id,n,note])=>{const s=S(id);if(!s){h+=`<tr><td>${esc(n)}</td><td colspan="5" class="mute">belum ada data</td></tr>`;return}
+    const L=last(id),d3=chgOver(id,91,'diff'),d12=chgOver(id,365,'diff');
+    h+=`<tr><td>${esc(n)}${note?`<div class="small mute">${note}</div>`:''}</td><td class="r num"><b>${nf(L[1],2)}%</b></td><td class="r num ${cls(d3)}">${d3==null?'–':sg(d3,2)}</td><td class="r num ${cls(d12)}">${d12==null?'–':sg(d12,2)}</td><td>${fq(s.f)}</td><td class="small">${fd(L[0])}${s.st!=='ok'?` <span class="s-basi">(${stText(s.st)})</span>`:''}</td></tr>`});
+  $('#policy').innerHTML=h+'</tbody></table><div class="small mute" style="margin-top:6px">Δ dalam poin persentase. Bank Indonesia belum tersedia (sumber BIS belum diuji). Seri OECD bulanan dan terlambat beberapa minggu.</div>'}
+
+/* ---------- panel: stres dan likuiditas ---------- */
+let stDays=365;
+function pct1(id,n){const s=S(id);if(!s)return null;const a=s.p.slice(-n).map(p=>p[1]);return pctRank(a,s.p[s.p.length-1][1])}
+function drawTiles(){
+  const T=[];const v=last('VIX'),v3=last('VIX3M');
+  const add=(id,name,dec,n,extra)=>{const s=S(id);if(!s){T.push(`<div class="tile"><b>${name}</b><div class="v mute">–</div></div>`);return}
+    const L=last(id),p=pct1(id,n);T.push(`<div class="tile"><b>${name}</b><div class="v">${nf(L[1],dec)}</div><div class="small mute">persentil ${p==null?'–':nf(p,0)} · ${fq(s.f)} ${fd(L[0])}${extra||''}</div></div>`)};
+  add('VIX','VIX',2,252);
+  if(v&&v3){const r=v[1]/v3[1];T.push(`<div class="tile"><b>Struktur tenor VIX</b><div class="v">${nf(r,3)}</div><div class="small mute">${r<1?'contango (tenang)':'backwardation (tegang)'} · VIX ÷ VIX 3 bulan</div></div>`)}
+  add('HYOAS','Selisih kredit HY (%)',2,252);add('MOVE','MOVE',1,252);add('NFCI','Kondisi keuangan (NFCI)',3,52);
+  add('RRP','Reverse repo (miliar USD)',1,252);
+  $('#tiles').innerHTML=T.join('')}
+function liqSeries(){
+  const w=S('WALCL'),t=S('TGA'),r=S('RRP');if(!w||!t||!r)return[];const o=[];
+  for(const p of w.p.slice(-200)){const T=at('TGA',p[0]),R=at('RRP',p[0]);if(!T||!R)continue;o.push([p[0],p[1]/1e3-T[1]/1e3-R[1]])}
+  return o}
+function drawStres(){
+  const r=$('#rng2');r.innerHTML='';[['3 bulan',91],['1 tahun',365],['2 tahun',730]].forEach(([t,d])=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.setAttribute('aria-pressed',stDays===d);b.onclick=()=>{stDays=d;drawStres()};r.append(b)});
+  const vix=S('VIX'),v3=S('VIX3M'),hy=S('HYOAS');
+  const A=[];if(vix)A.push({name:'VIX',pts:vix.p,color:'var(--s1)'});if(v3)A.push({name:'VIX 3 bulan',pts:v3.p,color:'var(--s2)'});
+  lineChart($('#ch-vix'),A,{days:stDays,h:210,dec:1,label:'VIX dan VIX 3 bulan'});if(A.length)$('#ch-vix').append(tableView(A.map(a=>({...a,pts:cutDays(a.pts,stDays)})),1));
+  lineChart($('#ch-hy'),hy?[{name:'Selisih kredit HY',pts:hy.p,color:'var(--s1)'}]:[],{days:stDays,h:210,dec:2,label:'Selisih kredit high-yield'});
+  const lq=liqSeries();lineChart($('#ch-liq'),lq.length?[{name:'Likuiditas bersih',pts:lq,color:'var(--s1)'}]:[],{days:stDays,h:210,dec:0,label:'Likuiditas bersih Fed'});
+  if(lq.length)$('#ch-liq').append(tableView([{name:'Likuiditas bersih',pts:cutDays(lq,stDays)}],0))}
+
+/* ---------- panel: COT ---------- */
+const COTL={COT_GOLD:'Emas',COT_CRUDE:'Minyak mentah',COT_COPPER:'Tembaga',COT_SPX:'S&P 500 e-mini',COT_NDX:'Nasdaq e-mini',COT_EUR:'Euro',COT_JPY:'Yen',COT_GBP:'Poundsterling',COT_AUD:'Dolar Australia',COT_BTC:'Bitcoin CME'};
+function cotCat(p){return p<10?['Ekstrem short','c-bad']:p<35?['Condong short','c-warn']:p<65?['Seimbang','']:p<90?['Condong long','c-warn']:['Ekstrem long','c-bad']}
+function drawCOT(){
+  let h='';Object.keys(COTL).forEach(id=>{const s=S(id);
+    if(!s||s.p.length<30){h+=`<div class="row"><span>${COTL[id]}</span><span class="mute">belum ada data cukup</span><span></span></div>`;return}
+    const a=s.p.slice(-156).map(p=>p[1]),L=s.p[s.p.length-1],pr=pctRank(a,L[1]),[ct,cc]=cotCat(pr),dw=L[1]-s.p[s.p.length-2][1];
+    h+=`<div class="row"><span><b>${COTL[id]}</b><div class="small mute">${fq(s.f)} ${fd(L[0])}${a.length<100?' · riwayat '+a.length+' minggu':''}</div></span>
+     <div class="zone" role="img" aria-label="${COTL[id]}: persentil ${nf(pr,0)}, ${ct}"><i style="width:10%"></i><i style="width:25%"></i><i style="width:30%"></i><i style="width:25%"></i><i style="width:10%"></i><span class="mk" style="left:calc(${pr}% - 2px)"></span></div>
+     <span class="small"><span class="chip ${cc||''}" style="${cc?'':'background:var(--panel2);color:var(--ink)'}">${ct}</span> <b class="num">${nf(pr,0)}%</b><div class="num mute">${nf(L[1],0)} kontrak · ${arrow(dw)} ${sg(dw,0)} minggu ini</div></span></div>`});
+  $('#cot').innerHTML=h}
+
+/* ---------- panel: kalender ---------- */
+const IND={cpi:'CPI bulanan (%)',cpi_core:'CPI inti bulanan (%)',pce_core:'PCE inti bulanan (%)',ppi:'PPI bulanan (%)',ahe:'Upah per jam bulanan (%)',nfp:'Penggajian nonpertanian (ribu)',unemp:'Tingkat pengangguran (%)',claims:'Klaim pengangguran (ribu)',jolts:'Lowongan kerja JOLTS (juta)',retail:'Penjualan ritel bulanan (%)',ip:'Produksi industri bulanan (%)',empire:'Survei manufaktur New York',philly:'Survei manufaktur Philadelphia',gdp:'PDB kuartalan (%)'};
+function drawCal(){
+  const today=new Date().toISOString().slice(0,10);const up=CONS.filter(c=>c[0]>=today).sort((a,b)=>a[0]<b[0]?-1:1).slice(0,10);
+  $('#cal-up').innerHTML=up.length?'<table><thead><tr><th>Tanggal (AS)</th><th>Rilis</th><th class="r">Konsensus</th></tr></thead><tbody>'+up.map(c=>`<tr><td>${fd(c[0])}</td><td>${esc(IND[c[1]]||c[1])}</td><td class="r num">${nf(c[2],2)}</td></tr>`).join('')+'</tbody></table>':'<div class="empty">Belum ada rilis mendatang di berkas konsensus. Kalender pekan berjalan diambil sekali sehari.</div>';
+  const rel=(FEED&&FEED.releases||[]).slice().sort((a,b)=>a.date<b.date?1:-1).slice(0,10);
+  $('#cal-last').innerHTML=rel.length?'<table><thead><tr><th>Tanggal</th><th>Rilis</th><th class="r">Aktual</th><th class="r">Konsensus</th><th class="r">Selisih</th></tr></thead><tbody>'+rel.map(r=>{const df=r.cons==null?null:r.act-r.cons;return`<tr><td>${fd(r.date)}</td><td>${esc(IND[r.ind]||r.ind)}</td><td class="r num"><b>${nf(r.act,2)}</b></td><td class="r num mute">${r.cons==null?'–':nf(r.cons,2)}${r.src==='proxy'?' <span class="small">(proksi)</span>':''}</td><td class="r num ${cls(df)}">${df==null?'–':arrow(df)+' '+sg(df,2)}</td></tr>`}).join('')+'</tbody></table>':'<div class="empty">Belum ada data rilis.</div>'}
+
+/* ---------- panel: kesehatan data ---------- */
+let gfil='Semua';
+function drawHealth(){
+  const rows=ST?ST.series:Object.entries(B.series).map(([id,s])=>({id,label:s.l,group:s.g,freq:s.f,prov:s.pv,ref:s.r,asof:s.a,age:s.ag,state:s.st,note:s.n,unverified:s.un,fallback:s.fb}));
+  const groups=['Semua',...new Set(rows.map(r=>r.group))];const gf=$('#gf');gf.innerHTML='';
+  groups.forEach(g=>{const b=document.createElement('button');b.type='button';b.textContent=g;b.setAttribute('aria-pressed',gfil===g);b.onclick=()=>{gfil=g;drawHealth()};gf.append(b)});
+  const ord={gagal:0,mati:1,ditahan:2,basi:3,ok:4};
+  let h='<thead><tr><th>Seri</th><th>Kelompok</th><th>Frekuensi</th><th>Sumber</th><th>Data terakhir</th><th class="r">Umur (hari)</th><th>Status</th><th>Kepercayaan</th><th>Catatan</th></tr></thead><tbody>';
+  rows.filter(r=>gfil==='Semua'||r.group===gfil).sort((a,b)=>(ord[a.state]-ord[b.state])||(a.id<b.id?-1:1)).forEach(r=>{
+    const ic={ok:'✓',basi:'!',ditahan:'⏸',gagal:'✕',mati:'✕'}[r.state]||'?';
+    h+=`<tr><td>${esc(r.label)}<div class="small mute">${esc(r.id)}${r.unverified?' · belum teruji penuh':''}</div></td><td>${esc(r.group)}</td><td>${fq(r.freq)}</td><td class="small">${esc(r.prov||'–')}${r.ref?': '+esc(r.ref):''}${r.fallback?' <b>(cadangan)</b>':''}</td><td class="small">${fd(r.asof)}</td><td class="r num">${r.age==null?'–':r.age}</td><td class="state s-${r.state}">${ic} ${stText(r.state)}</td><td class="small">${trustTag(AU?.trust?.[r.id])}</td><td class="small mute">${esc(r.note||'')}${auditWhy(r.id)}</td></tr>`});
+  $('#health').innerHTML=h+'</tbody>';drawAudit()}
+function auditWhy(id){const f=(AU?.checks||[]).filter(c=>c.status==='fail'&&(c.series||[]).includes(id));return f.length?'<div class="s-gagal" style="margin-top:4px"><b>Audit gagal:</b> '+f.map(c=>esc(c.name+': '+c.detail)).join('<br>')+'</div>':''}
+function trustTag(t){if(!t)return '<span class="mute">–</span>';const c={terverifikasi:'s-ok',konsisten:'s-ok',bermasalah:'s-gagal','sumber tunggal':'s-basi'}[t]||'';return `<span class="state ${c}">${esc(t)}</span>`}
+function drawAudit(){
+  if(!AU){$('#auditsum').textContent='data/audit_series.json belum tersedia: jalankan workflow dengan skrip terbaru.';$('#audit').innerHTML='';return}
+  const tc={};Object.values(AU.trust).forEach(t=>tc[t]=(tc[t]||0)+1);
+  $('#auditsum').innerHTML=`Dibuat ${new Date(AU.generated).toLocaleString('id-ID',{dateStyle:'medium',timeStyle:'short'})} · `+Object.entries(tc).map(([k,v])=>`${esc(k)}: <b class="num">${v}</b>`).join(' · ');
+  const ord={fail:0,warn:1,pass:2,na:3},ic={fail:'✕',warn:'!',pass:'✓',na:'–'},cl={fail:'s-gagal',warn:'s-basi',pass:'s-ok',na:'s-mati'},tx={fail:'gagal',warn:'peringatan',pass:'lolos',na:'tidak berlaku'};
+  let h='<thead><tr><th>Uji</th><th>Jenis</th><th>Hasil</th><th>Rincian</th></tr></thead><tbody>';
+  [...AU.checks].sort((a,b)=>ord[a.status]-ord[b.status]).forEach(c=>{h+=`<tr><td>${esc(c.name)}<div class="small mute">${esc((c.series||[]).join(', '))}</div></td><td class="small">${esc(c.kind)}</td><td class="state ${cl[c.status]}">${ic[c.status]} ${tx[c.status]}</td><td class="small mute">${esc(c.detail||'')}</td></tr>`});
+  $('#audit').innerHTML=h+'</tbody>'}
+
+/* ---------- muat dan gambar ---------- */
+async function getJSON(u){const r=await fetch(u+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error(u+' '+r.status);return r.json()}
+let AU=null,PL=null,CC=null,GT=null;
+const NAMA_ASET={XAUUSD:'Emas',WTI:'Minyak WTI',SPX:'S&P 500',USDJPY:'USD/JPY',EURUSD:'EUR/USD'};
+async function load(){
+  try{B=await getJSON('data/bundle.json')}catch(e){$('#bar').innerHTML='<span class="chip c-bad">✕ data/bundle.json belum tersedia</span><span class="small mute">Jalankan workflow feed-dan-deploy sekali, lalu muat ulang halaman ini.</span>';return false}
+  try{ST=await getJSON('data/status.json')}catch(e){ST=null}
+  try{FEED=await getJSON('data/feed.json')}catch(e){FEED=null}
+  try{AU=await getJSON('data/audit_series.json')}catch(e){AU=null}
+  try{GT=await getJSON('data/gates.json')}catch(e){GT=null}
+  try{PL=await getJSON('data/pipeline.json')}catch(e){PL=null}
+  try{CC=await getJSON('data/concept_check.json')}catch(e){CC=null}
+  try{const t=await (await fetch('data/consensus.csv?t='+Date.now(),{cache:'no-store'})).text();
+    CONS=t.split('\n').map(l=>l.split(',').map(x=>x.trim())).filter(c=>/^20\d\d-\d\d-\d\d$/.test(c[0])&&c.length>=3).map(c=>[c[0],c[1],parseFloat(c[2])]).filter(c=>!isNaN(c[2]))}catch(e){CONS=[]}
+  return true}
+function drawAll(){
+  if(!B)return;const safe=(f)=>{try{f()}catch(e){console.error(f.name,e)}};
+  [drawStatus,drawCards,drawDetail,drawHeat,drawPairs,drawMacro,drawCurve,drawPolicy,drawTiles,drawStres,drawCOT,drawCal,drawHealth].forEach(safe)}
+async function refresh(){const b=$('#rf');b.disabled=true;if(await load())drawAll();b.disabled=false}
+$('#rf').onclick=refresh;
+$('#th').onclick=()=>{const r=document.documentElement,dark=r.getAttribute('data-theme')==='dark'||(!r.getAttribute('data-theme')&&matchMedia('(prefers-color-scheme: dark)').matches);r.setAttribute('data-theme',dark?'light':'dark');try{localStorage.setItem('med-theme',dark?'light':'dark')}catch(e){}};
+try{const t=localStorage.getItem('med-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}
+let rz;addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>{drawCurve();drawStres();if(selCard)drawDetail()},200)});
+setInterval(refresh,10*60*1000);document.addEventListener('visibilitychange',()=>{if(!document.hidden&&B&&mins(ST?.generated||B.generated)>10)refresh()});
+refresh();
+</script></body></html>
