@@ -1,2 +1,10 @@
 # tanggal_rilis,indikator,konsensus_pasar   (contoh: 2026-10-02,nfp,90)  -- baris ini menimpa proxy
 2026-10-08,claims,200.0
+2026-10-14,cpi_core,0.2
+2026-10-14,cpi,0.6
+2026-10-15,ppi,0.5
+2026-10-15,retail,0.3
+2026-10-15,philly,26.5
+2026-10-15,claims,195.0
+2026-10-15,empire,3.2
+2026-10-16,ip,0.4
