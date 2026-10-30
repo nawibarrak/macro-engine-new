@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-23T11:56:15Z",
+ "generated": "2026-10-30T16:12:36Z",
  "factors": [
   "G",
   "I",
@@ -25,17 +25,17 @@
    "est": [
     0,
     0.02,
-    0.02,
+    0.03,
     0.1,
     0.08,
     -0.24,
     -0.41
    ],
    "lam": 100,
-   "n_weeks": 981,
+   "n_weeks": 982,
    "n_oos": 442,
-   "r2_est": 0.2341,
-   "r2_prior": -0.2447,
+   "r2_est": 0.2308,
+   "r2_prior": -0.2485,
    "reason": "est mengalahkan prior dan R2 uji>0"
   },
   "WTI": {
@@ -59,10 +59,10 @@
     -0.15
    ],
    "lam": 300,
-   "n_weeks": 981,
+   "n_weeks": 982,
    "n_oos": 442,
-   "r2_est": 0.144,
-   "r2_prior": 0.0522,
+   "r2_est": 0.1422,
+   "r2_prior": 0.0521,
    "reason": "est mengalahkan prior dan R2 uji>0"
   },
   "CU": {
@@ -86,10 +86,10 @@
     -0.32
    ],
    "lam": 100,
-   "n_weeks": 981,
+   "n_weeks": 982,
    "n_oos": 442,
-   "r2_est": 0.2064,
-   "r2_prior": 0.0489,
+   "r2_est": 0.2058,
+   "r2_prior": 0.0496,
    "reason": "est mengalahkan prior dan R2 uji>0"
   },
   "SPX": {
@@ -113,10 +113,10 @@
     -0.18
    ],
    "lam": 100,
-   "n_weeks": 981,
+   "n_weeks": 982,
    "n_oos": 442,
-   "r2_est": 0.5753,
-   "r2_prior": 0.1198,
+   "r2_est": 0.5741,
+   "r2_prior": 0.1185,
    "reason": "est mengalahkan prior dan R2 uji>0"
   },
   "NDX": {
@@ -133,17 +133,17 @@
    "est": [
     0.3,
     0.03,
-    0.07,
+    0.08,
     0.05,
     -0.69,
     -0.11,
     -0.13
    ],
    "lam": 100,
-   "n_weeks": 981,
+   "n_weeks": 982,
    "n_oos": 442,
-   "r2_est": 0.4618,
-   "r2_prior": -0.2191,
+   "r2_est": 0.4603,
+   "r2_prior": -0.221,
    "reason": "est mengalahkan prior dan R2 uji>0"
   },
   "BTC": {
@@ -167,10 +167,10 @@
     -0.1
    ],
    "lam": 30,
-   "n_weeks": 631,
-   "n_oos": 284,
-   "r2_est": 0.0563,
-   "r2_prior": -1.6607,
+   "n_weeks": 632,
+   "n_oos": 285,
+   "r2_est": 0.056,
+   "r2_prior": -1.6584,
    "reason": "est mengalahkan prior dan R2 uji>0"
   },
   "EEM": {
@@ -187,17 +187,17 @@
    "est": [
     0.3,
     0.12,
-    0.03,
+    0.04,
     -0.02,
-    -0.57,
+    -0.58,
     0.01,
     -0.33
    ],
    "lam": 30,
-   "n_weeks": 981,
+   "n_weeks": 982,
    "n_oos": 442,
-   "r2_est": 0.4068,
-   "r2_prior": -0.1785,
+   "r2_est": 0.4064,
+   "r2_prior": -0.179,
    "reason": "est mengalahkan prior dan R2 uji>0"
   },
   "IHSG": {
@@ -214,17 +214,17 @@
    "est": [
     0.3,
     0.13,
-    0.01,
+    0.02,
     -0.01,
-    -0.3,
+    -0.29,
     -0.05,
     -0.19
    ],
    "lam": 30,
-   "n_weeks": 959,
+   "n_weeks": 960,
    "n_oos": 432,
-   "r2_est": 0.1627,
-   "r2_prior": -0.3096,
+   "r2_est": 0.1549,
+   "r2_prior": -0.3149,
    "reason": "est mengalahkan prior dan R2 uji>0"
   },
   "EURUSD": {
@@ -241,17 +241,17 @@
    "est": [
     0,
     -0.04,
-    0.06,
+    0.07,
     -0.0,
     -0.01,
     -0.0,
     -0.82
    ],
    "lam": 30,
-   "n_weeks": 978,
+   "n_weeks": 979,
    "n_oos": 441,
-   "r2_est": 0.6361,
-   "r2_prior": 0.5293,
+   "r2_est": 0.6354,
+   "r2_prior": 0.5284,
    "reason": "est mengalahkan prior dan R2 uji>0"
   },
   "GBPUSD": {
@@ -268,17 +268,17 @@
    "est": [
     0.1,
     0.04,
-    0.03,
-    -0.0,
+    0.02,
+    -0.01,
     -0.11,
     0.0,
     -0.63
    ],
    "lam": 300,
-   "n_weeks": 981,
+   "n_weeks": 982,
    "n_oos": 442,
-   "r2_est": 0.4391,
-   "r2_prior": 0.3843,
+   "r2_est": 0.4392,
+   "r2_prior": 0.384,
    "reason": "est mengalahkan prior dan R2 uji>0"
   },
   "USDJPY": {
@@ -302,10 +302,10 @@
     0.33
    ],
    "lam": 30,
-   "n_weeks": 978,
+   "n_weeks": 979,
    "n_oos": 441,
-   "r2_est": 0.2418,
-   "r2_prior": -0.0424,
+   "r2_est": 0.2414,
+   "r2_prior": -0.0406,
    "reason": "est mengalahkan prior dan R2 uji>0"
   },
   "AUDUSD": {
@@ -329,10 +329,10 @@
     -0.46
    ],
    "lam": 30,
-   "n_weeks": 981,
+   "n_weeks": 982,
    "n_oos": 442,
-   "r2_est": 0.3509,
-   "r2_prior": 0.2153,
+   "r2_est": 0.3498,
+   "r2_prior": 0.2144,
    "reason": "est mengalahkan prior dan R2 uji>0"
   },
   "USDIDR": {
@@ -356,10 +356,10 @@
     0.22
    ],
    "lam": 100,
-   "n_weeks": 977,
-   "n_oos": 440,
+   "n_weeks": 978,
+   "n_oos": 441,
    "r2_est": 0.1572,
-   "r2_prior": -0.9741,
+   "r2_prior": -0.9737,
    "reason": "est mengalahkan prior dan R2 uji>0"
   }
  }
