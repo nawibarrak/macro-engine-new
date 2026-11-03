@@ -22,9 +22,7 @@ import { DeskView } from './components/DeskView';
 import { LanjutanView } from './components/LanjutanView';
 import { MacroSearchModal } from './components/MacroSearchModal';
 
-// Resolve generated data relative to the deployed app path (including GitHub Pages
-// project sites such as /macro-engine-new/), instead of the domain root.
-const dataUrl = (path: string) => new URL(`data/${path}`, document.baseURI).toString();
+const dataUrl = (file: string) => new URL(`data/${file}`, document.baseURI).toString();
 
 export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<'desk' | 'lanjutan'>('desk');
@@ -39,148 +37,100 @@ export const App: React.FC = () => {
   const [consensus, setConsensus] = useState<ConsensusItem[]>([]);
   const [betas, setBetas] = useState<BetasData | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-
-  // Live ticking clock for quantitative terminal
-  const [clock, setClock] = useState<string>('');
+  const [clock, setClock] = useState('');
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
 
   useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      const utc = now.toISOString().slice(11, 19) + ' UTC';
-      setClock(utc);
-    };
+    const updateTime = () => setClock(`${new Date().toISOString().slice(11, 19)} UTC`);
     updateTime();
     const interval = setInterval(updateTime, 1000);
     return () => clearInterval(interval);
   }, []);
 
-  // Theme management with dark mode default
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
-
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
-
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
-  };
 
   const loadData = useCallback(async () => {
     setIsRefreshing(true);
     const now = Date.now();
 
+    const loadJson = async <T,>(file: string): Promise<T | null> => {
+      try {
+        const response = await fetch(`${dataUrl(file)}?t=${now}`, { cache: 'no-store' });
+        if (!response.ok) return null;
+        return (await response.json()) as T;
+      } catch {
+        return null;
+      }
+    };
+
     try {
-      const r = await fetch(`${dataUrl('bundle.json')}?t=${now}`);
-      if (r.ok) {
-        const data = await r.json();
-        if (data && data.series && Object.keys(data.series).length > 0) {
-          setBundle(data);
+      const [bundleData, statusData, auditData, gatesData, pipelineData, conceptData, feedData, betasData] =
+        await Promise.all([
+          loadJson<BundleData>('bundle.json'),
+          loadJson<StatusData>('status.json'),
+          loadJson<AuditSeriesData>('audit_series.json'),
+          loadJson<GatesData>('gates.json'),
+          loadJson<PipelineData>('pipeline.json'),
+          loadJson<ConceptCheckData>('concept_check.json'),
+          loadJson<FeedData>('feed.json'),
+          loadJson<BetasData>('betas.json'),
+        ]);
+
+      if (bundleData?.series && Object.keys(bundleData.series).length) setBundle(bundleData);
+      if (statusData?.counts) setStatus(statusData);
+      if (auditData?.checks) setAudit(auditData);
+      if (gatesData?.umum) setGates(gatesData);
+      if (pipelineData?.steps) setPipeline(pipelineData);
+      if (conceptData?.violations) setConceptCheck(conceptData);
+      if (feedData?.generated) setFeed(feedData);
+      if (betasData?.assets) setBetas(betasData);
+
+      try {
+        const response = await fetch(`${dataUrl('consensus.csv')}?t=${now}`, { cache: 'no-store' });
+        if (response.ok) {
+          const text = await response.text();
+          const items: ConsensusItem[] = text
+            .split('\n')
+            .map((line) => line.split(',').map((x) => x.trim()))
+            .filter((parts) => /^20\d\d-\d\d-\d\d$/.test(parts[0]) && parts.length >= 3)
+            .map((parts) => ({
+              date: parts[0],
+              ind: parts[1],
+              cons: parseFloat(parts[2]),
+            }))
+            .filter((item) => !isNaN(item.cons));
+          if (items.length) setConsensus(items);
         }
+      } catch {
+        // ignore
       }
-    } catch (e) {}
-
-    try {
-      const r = await fetch(`${dataUrl('status.json')}?t=${now}`);
-      if (r.ok) {
-        const data = await r.json();
-        if (data && data.counts) setStatus(data);
-      }
-    } catch (e) {}
-
-    try {
-      const r = await fetch(`${dataUrl('audit_series.json')}?t=${now}`);
-      if (r.ok) {
-        const data = await r.json();
-        if (data && data.checks) setAudit(data);
-      }
-    } catch (e) {}
-
-    try {
-      const r = await fetch(`${dataUrl('gates.json')}?t=${now}`);
-      if (r.ok) {
-        const data = await r.json();
-        if (data && data.umum) setGates(data);
-      }
-    } catch (e) {}
-
-    try {
-      const r = await fetch(`${dataUrl('pipeline.json')}?t=${now}`);
-      if (r.ok) {
-        const data = await r.json();
-        if (data && data.steps) setPipeline(data);
-      }
-    } catch (e) {}
-
-    try {
-      const r = await fetch(`${dataUrl('concept_check.json')}?t=${now}`);
-      if (r.ok) {
-        const data = await r.json();
-        if (data && data.violations) setConceptCheck(data);
-      }
-    } catch (e) {}
-
-    try {
-      const r = await fetch(`${dataUrl('feed.json')}?t=${now}`);
-      if (r.ok) {
-        const data = await r.json();
-        if (data && data.generated) setFeed(data);
-      }
-    } catch (e) {}
-
-    try {
-      const r = await fetch(`${dataUrl('consensus.csv')}?t=${now}`);
-      if (r.ok) {
-        const text = await r.text();
-        const items: ConsensusItem[] = text
-          .split('\n')
-          .map((line) => line.split(',').map((x) => x.trim()))
-          .filter((parts) => /^20\d\d-\d\d-\d\d$/.test(parts[0]) && parts.length >= 3)
-          .map((parts) => ({
-            date: parts[0],
-            ind: parts[1],
-            cons: parseFloat(parts[2]),
-          }))
-          .filter((item) => !isNaN(item.cons));
-        if (items.length) setConsensus(items);
-      }
-    } catch (e) {}
-
-    try {
-      const r = await fetch(`${dataUrl('betas.json')}?t=${now}`);
-      if (r.ok) {
-        const data = await r.json();
-        if (data && data.assets) setBetas(data);
-      }
-    } catch (e) {}
-
-    setIsRefreshing(false);
+    } finally {
+      setIsRefreshing(false);
+    }
   }, []);
 
   useEffect(() => {
-    loadData();
-    const interval = setInterval(loadData, 10 * 60 * 1000);
+    void loadData();
+    const interval = setInterval(() => void loadData(), 10 * 60 * 1000);
     return () => clearInterval(interval);
   }, [loadData]);
 
+  const goTo = (view: 'desk' | 'lanjutan') => {
+    setCurrentView(view);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* Institutional Quantitative Terminal Top Bar */}
       <header className="top">
         <div className="wrap">
-          {/* Left Zone: Terminal Brand & Live Status */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div className="terminal-brand">
-              <span className="terminal-logo-box">QT</span>
-              <span>MACRO ENGINE // QUANT DESK</span>
-            </div>
-
-            <span className="ping-indicator">
-              <span className="ping-dot" />
-              LIVE · 14MS
-            </span>
+            <div className="terminal-brand"><span className="terminal-logo-box">QT</span><span>MACRO ENGINE // QUANT DESK</span></div>
+            <span className="ping-indicator"><span className="ping-dot" />LIVE · {clock}</span>
           </div>
 
-          {/* Center Zone: Quick-Toggle Module Controls */}
           <nav aria-label="Navigasi Terminal">
             {currentView === 'desk' ? (
               <>
@@ -192,94 +142,25 @@ export const App: React.FC = () => {
                 <a href="#posisi">COT</a>
                 <a href="#kalender">Kalender</a>
                 <a href="#data">Kesehatan</a>
-                <button
-                  type="button"
-                  style={{
-                    fontFamily: 'var(--f-mono)',
-                    fontSize: 11,
-                    background: 'var(--accent-soft)',
-                    borderColor: 'var(--accent-border)',
-                    color: 'var(--accent)',
-                    fontWeight: 600,
-                  }}
-                  onClick={() => {
-                    setCurrentView('lanjutan');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                >
-                  Workbench Sinyal →
-                </button>
+                <button type="button" onClick={() => goTo('lanjutan')}>Workbench Sinyal →</button>
               </>
             ) : (
               <>
-                <button
-                  type="button"
-                  style={{
-                    fontFamily: 'var(--f-mono)',
-                    fontSize: 11,
-                    background: 'var(--panel2)',
-                    borderColor: 'var(--line-strong)',
-                  }}
-                  onClick={() => {
-                    setCurrentView('desk');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                >
-                  ← Beranda Terminal
-                </button>
-                <span className="small mute" style={{ fontFamily: 'var(--f-mono)', padding: '4px 8px' }}>
-                  [MODULE: QUANTITATIVE WORKBENCH & SIGNAL MODEL]
-                </span>
+                <button type="button" onClick={() => goTo('desk')}>← Beranda Terminal</button>
+                <span className="small mute">[MODULE: QUANTITATIVE WORKBENCH & SIGNAL MODEL]</span>
               </>
             )}
           </nav>
 
-          {/* Right Zone: System Clock & Action Controls */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span className="terminal-time">{clock}</span>
-
-            <button
-              type="button"
-              className="btn sm"
-              style={{
-                backgroundColor: 'rgba(56, 189, 248, 0.12)',
-                borderColor: 'var(--accent-border)',
-                color: 'var(--accent)',
-                fontWeight: 600,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 5,
-              }}
-              onClick={() => setIsMacroSearchOpen(true)}
-              title="Riset Intel Makro Real-Time dengan Google Search Grounding"
-            >
-              <span>⚡</span> INTEL SEARCH
-            </button>
-
-            <button
-              type="button"
-              className="btn sm"
-              onClick={loadData}
-              disabled={isRefreshing}
-              title="Refresh live feeds"
-            >
-              {isRefreshing ? 'SYNCING…' : 'SYNC'}
-            </button>
-
-            <button
-              type="button"
-              className="btn sm"
-              onClick={toggleTheme}
-              aria-label="Toggle theme"
-              title="Toggle Dark / Light Theme"
-            >
-              {theme === 'dark' ? '☀' : '🌙'}
-            </button>
+            <span className=\"terminal-time\">{clock}</span>
+            <button type=\"button\" className=\"btn sm\" onClick={() => setIsMacroSearchOpen(true)}>⚡ INTEL SEARCH</button>
+            <button type=\"button\" className=\"btn sm\" onClick={() => void loadData()} disabled={isRefreshing}>{isRefreshing ? 'SYNCING…' : 'SYNC'}</button>
+            <button type=\"button\" className=\"btn sm\" onClick={() => setTheme((value) => value === 'dark' ? 'light' : 'dark')} aria-label=\"Toggle theme\">{theme === 'dark' ? '☀' : '🌙'}</button>
           </div>
         </div>
       </header>
 
-      {/* Main View Area */}
       <div style={{ flex: 1 }}>
         {currentView === 'desk' ? (
           <DeskView
@@ -291,23 +172,16 @@ export const App: React.FC = () => {
             conceptCheck={conceptCheck}
             feed={feed}
             consensus={consensus}
-            onNavigateToLanjutan={() => {
-              setCurrentView('lanjutan');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
+            onNavigateToLanjutan={() => goTo('lanjutan')}
           />
         ) : (
           <LanjutanView
             betasData={betas}
-            onBackToDesk={() => {
-              setCurrentView('desk');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
+            onBackToDesk={() => goTo('desk')}
           />
         )}
       </div>
 
-      {/* Google Search Grounded Macro Intel Modal */}
       <MacroSearchModal
         isOpen={isMacroSearchOpen}
         onClose={() => setIsMacroSearchOpen(false)}
