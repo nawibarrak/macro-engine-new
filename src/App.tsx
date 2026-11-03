@@ -22,6 +22,10 @@ import { DeskView } from './components/DeskView';
 import { LanjutanView } from './components/LanjutanView';
 import { MacroSearchModal } from './components/MacroSearchModal';
 
+// Resolve generated data relative to the deployed app path (including GitHub Pages
+// project sites such as /macro-engine-new/), instead of the domain root.
+const dataUrl = (path: string) => new URL(`data/${path}`, document.baseURI).toString();
+
 export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<'desk' | 'lanjutan'>('desk');
   const [isMacroSearchOpen, setIsMacroSearchOpen] = useState(false);
@@ -66,7 +70,7 @@ export const App: React.FC = () => {
     const now = Date.now();
 
     try {
-      const r = await fetch(`/data/bundle.json?t=${now}`);
+      const r = await fetch(`${dataUrl('bundle.json')}?t=${now}`);
       if (r.ok) {
         const data = await r.json();
         if (data && data.series && Object.keys(data.series).length > 0) {
@@ -76,7 +80,7 @@ export const App: React.FC = () => {
     } catch (e) {}
 
     try {
-      const r = await fetch(`/data/status.json?t=${now}`);
+      const r = await fetch(`${dataUrl('status.json')}?t=${now}`);
       if (r.ok) {
         const data = await r.json();
         if (data && data.counts) setStatus(data);
@@ -84,7 +88,7 @@ export const App: React.FC = () => {
     } catch (e) {}
 
     try {
-      const r = await fetch(`/data/audit_series.json?t=${now}`);
+      const r = await fetch(`${dataUrl('audit_series.json')}?t=${now}`);
       if (r.ok) {
         const data = await r.json();
         if (data && data.checks) setAudit(data);
@@ -92,7 +96,7 @@ export const App: React.FC = () => {
     } catch (e) {}
 
     try {
-      const r = await fetch(`/data/gates.json?t=${now}`);
+      const r = await fetch(`${dataUrl('gates.json')}?t=${now}`);
       if (r.ok) {
         const data = await r.json();
         if (data && data.umum) setGates(data);
@@ -100,7 +104,7 @@ export const App: React.FC = () => {
     } catch (e) {}
 
     try {
-      const r = await fetch(`/data/pipeline.json?t=${now}`);
+      const r = await fetch(`${dataUrl('pipeline.json')}?t=${now}`);
       if (r.ok) {
         const data = await r.json();
         if (data && data.steps) setPipeline(data);
@@ -108,7 +112,7 @@ export const App: React.FC = () => {
     } catch (e) {}
 
     try {
-      const r = await fetch(`/data/concept_check.json?t=${now}`);
+      const r = await fetch(`${dataUrl('concept_check.json')}?t=${now}`);
       if (r.ok) {
         const data = await r.json();
         if (data && data.violations) setConceptCheck(data);
@@ -116,7 +120,7 @@ export const App: React.FC = () => {
     } catch (e) {}
 
     try {
-      const r = await fetch(`/data/feed.json?t=${now}`);
+      const r = await fetch(`${dataUrl('feed.json')}?t=${now}`);
       if (r.ok) {
         const data = await r.json();
         if (data && data.generated) setFeed(data);
@@ -124,7 +128,7 @@ export const App: React.FC = () => {
     } catch (e) {}
 
     try {
-      const r = await fetch(`/data/consensus.csv?t=${now}`);
+      const r = await fetch(`${dataUrl('consensus.csv')}?t=${now}`);
       if (r.ok) {
         const text = await r.text();
         const items: ConsensusItem[] = text
@@ -142,7 +146,7 @@ export const App: React.FC = () => {
     } catch (e) {}
 
     try {
-      const r = await fetch(`/data/betas.json?t=${now}`);
+      const r = await fetch(`${dataUrl('betas.json')}?t=${now}`);
       if (r.ok) {
         const data = await r.json();
         if (data && data.assets) setBetas(data);
