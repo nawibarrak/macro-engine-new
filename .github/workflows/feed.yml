@@ -34,14 +34,13 @@ jobs:
       - name: Install Python dependencies
         run: pip install -r requirements.txt
 
-      - name: Restore cached data
-        uses: actions/cache@v4
+      - uses: actions/cache@v4
         with:
           path: data/series
           key: "series-${{ github.run_id }}"
           restore-keys: "series-"
 
-      - name: Run data pipeline
+      - name: Pipeline (data, audit, analysis, concept checks)
         run: python scripts/pipeline.py
         env:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
@@ -51,23 +50,26 @@ jobs:
           git config user.name "feed-bot"
           git config user.email "feed-bot@users.noreply.github.com"
           git add data/consensus.csv data/betas.json
-          git diff --cached --quiet || (git commit -m "konsensus: update [skip ci]" && git pull --rebase --autostash origin main && git push origin HEAD:main)
+          if ! git diff --cached --quiet; then
+            git commit -m "konsensus: update [skip ci]"
+            git pull --rebase --autostash origin main
+            git push origin HEAD:main
+          fi
 
       - name: Install frontend dependencies
         run: bun install --frozen-lockfile
 
       - name: Build frontend
         run: bun run build
+        env:
+          VITE_MACRO_API_URL: ${{ vars.VITE_MACRO_API_URL }}
 
-      - name: Prepare deployment bundle
+      - name: Copy pipeline output into the Pages artifact
         run: |
           mkdir -p dist/data
           cp -a data/. dist/data/
-          cp *.html dist/
-          cp lanjutan.html dist/lanjutan.html
 
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
 
