@@ -1,4 +1,15 @@
-# Macro Engine Desk (React + TypeScript + Vite)
+# Gemini macro-search API
+
+This standalone Express service is the runtime for `/api/macro-search`. GitHub Pages serves only the static frontend; it does not run this service.
+
+## Local run
+
+```sh
+cd backend
+cp .env.example .env
+# Fill GEMINI_API_KEY in .env; never commit the real key.
+npm install
+npm start# Macro Engine Desk (React + TypeScript + Vite)
 
 A modern, high-precision macroeconomic terminal and fundamental asset allocation desk rewritten from the original Dynamic setup into a full-featured React 18 + TypeScript SPA on Vite.
 
