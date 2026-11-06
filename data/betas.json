@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-30T16:12:36Z",
+ "generated": "2026-11-06T18:49:43Z",
  "factors": [
   "G",
   "I",
@@ -32,10 +32,10 @@
     -0.41
    ],
    "lam": 100,
-   "n_weeks": 982,
+   "n_weeks": 983,
    "n_oos": 442,
-   "r2_est": 0.2308,
-   "r2_prior": -0.2485,
+   "r2_est": 0.2298,
+   "r2_prior": -0.253,
    "reason": "est mengalahkan prior dan R2 uji>0"
   },
   "WTI": {
@@ -59,10 +59,10 @@
     -0.15
    ],
    "lam": 300,
-   "n_weeks": 982,
+   "n_weeks": 983,
    "n_oos": 442,
-   "r2_est": 0.1422,
-   "r2_prior": 0.0521,
+   "r2_est": 0.1421,
+   "r2_prior": 0.0513,
    "reason": "est mengalahkan prior dan R2 uji>0"
   },
   "CU": {
@@ -86,10 +86,10 @@
     -0.32
    ],
    "lam": 100,
-   "n_weeks": 982,
+   "n_weeks": 983,
    "n_oos": 442,
-   "r2_est": 0.2058,
-   "r2_prior": 0.0496,
+   "r2_est": 0.206,
+   "r2_prior": 0.0504,
    "reason": "est mengalahkan prior dan R2 uji>0"
   },
   "SPX": {
@@ -106,16 +106,16 @@
    "est": [
     0.4,
     0.11,
-    0.06,
+    0.07,
     0.02,
-    -0.7,
+    -0.69,
     -0.07,
     -0.18
    ],
    "lam": 100,
-   "n_weeks": 982,
+   "n_weeks": 983,
    "n_oos": 442,
-   "r2_est": 0.5741,
+   "r2_est": 0.5751,
    "r2_prior": 0.1185,
    "reason": "est mengalahkan prior dan R2 uji>0"
   },
@@ -135,15 +135,15 @@
     0.03,
     0.08,
     0.05,
-    -0.69,
+    -0.7,
     -0.11,
     -0.13
    ],
    "lam": 100,
-   "n_weeks": 982,
+   "n_weeks": 983,
    "n_oos": 442,
-   "r2_est": 0.4603,
-   "r2_prior": -0.221,
+   "r2_est": 0.4619,
+   "r2_prior": -0.2228,
    "reason": "est mengalahkan prior dan R2 uji>0"
   },
   "BTC": {
@@ -167,10 +167,10 @@
     -0.1
    ],
    "lam": 30,
-   "n_weeks": 632,
+   "n_weeks": 633,
    "n_oos": 285,
-   "r2_est": 0.056,
-   "r2_prior": -1.6584,
+   "r2_est": 0.0534,
+   "r2_prior": -1.7766,
    "reason": "est mengalahkan prior dan R2 uji>0"
   },
   "EEM": {
@@ -194,10 +194,10 @@
     -0.33
    ],
    "lam": 30,
-   "n_weeks": 982,
+   "n_weeks": 983,
    "n_oos": 442,
-   "r2_est": 0.4064,
-   "r2_prior": -0.179,
+   "r2_est": 0.4083,
+   "r2_prior": -0.1777,
    "reason": "est mengalahkan prior dan R2 uji>0"
   },
   "IHSG": {
@@ -221,10 +221,10 @@
     -0.19
    ],
    "lam": 30,
-   "n_weeks": 960,
-   "n_oos": 432,
-   "r2_est": 0.1549,
-   "r2_prior": -0.3149,
+   "n_weeks": 961,
+   "n_oos": 433,
+   "r2_est": 0.1561,
+   "r2_prior": -0.315,
    "reason": "est mengalahkan prior dan R2 uji>0"
   },
   "EURUSD": {
@@ -248,10 +248,10 @@
     -0.82
    ],
    "lam": 30,
-   "n_weeks": 979,
+   "n_weeks": 980,
    "n_oos": 441,
-   "r2_est": 0.6354,
-   "r2_prior": 0.5284,
+   "r2_est": 0.6357,
+   "r2_prior": 0.5278,
    "reason": "est mengalahkan prior dan R2 uji>0"
   },
   "GBPUSD": {
@@ -268,17 +268,17 @@
    "est": [
     0.1,
     0.04,
-    0.02,
-    -0.01,
+    0.03,
+    -0.0,
     -0.11,
     0.0,
     -0.63
    ],
    "lam": 300,
-   "n_weeks": 982,
+   "n_weeks": 983,
    "n_oos": 442,
    "r2_est": 0.4392,
-   "r2_prior": 0.384,
+   "r2_prior": 0.3846,
    "reason": "est mengalahkan prior dan R2 uji>0"
   },
   "USDJPY": {
@@ -302,10 +302,10 @@
     0.33
    ],
    "lam": 30,
-   "n_weeks": 979,
+   "n_weeks": 980,
    "n_oos": 441,
-   "r2_est": 0.2414,
-   "r2_prior": -0.0406,
+   "r2_est": 0.2389,
+   "r2_prior": -0.045,
    "reason": "est mengalahkan prior dan R2 uji>0"
   },
   "AUDUSD": {
@@ -329,10 +329,10 @@
     -0.46
    ],
    "lam": 30,
-   "n_weeks": 982,
+   "n_weeks": 983,
    "n_oos": 442,
    "r2_est": 0.3498,
-   "r2_prior": 0.2144,
+   "r2_prior": 0.2152,
    "reason": "est mengalahkan prior dan R2 uji>0"
   },
   "USDIDR": {
@@ -356,10 +356,10 @@
     0.22
    ],
    "lam": 100,
-   "n_weeks": 978,
+   "n_weeks": 979,
    "n_oos": 441,
-   "r2_est": 0.1572,
-   "r2_prior": -0.9737,
+   "r2_est": 0.1554,
+   "r2_prior": -0.9859,
    "reason": "est mengalahkan prior dan R2 uji>0"
   }
  }
