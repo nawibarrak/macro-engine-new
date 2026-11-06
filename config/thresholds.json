@@ -33,7 +33,7 @@
    "sangat_ekstrem": 97
   },
   "jendela_obs": 2520,
-  "min_obs": 750,
+  "min_obs": 250,
   "term_terbalik": 1.0,
   "histeresis_turun_hari": 3,
   "aturan": "Tingkat per dimensi (vol: VIX; kredit: HYOAS) dari persentil point-in-time 0..3. Normal = keduanya 0; Waspada = tepat satu dimensi naik; Stres = keduanya naik; Krisis = keduanya >=2 DAN kurva VIX terbalik (VIX/VIX3M > 1). Kurva terbalik mengangkat vol ke minimal 1. Naik langsung, turun satu tingkat setelah 3 hari mentah lebih rendah. NFCI hanya konteks.",
@@ -119,7 +119,8 @@
    "bobot_kejutan": 0.5,
    "bobot_taylor": 0.5,
    "ambang_stance": 20,
-   "ambang_p_z": 0.5
+   "ambang_p_z": 0.5,
+   "ambang_selisih_pasar": 50
   },
   "faktor": {
    "jendela_hari": 5,
@@ -131,27 +132,47 @@
    "XAUUSD": {
     "beta": "XAU",
     "gerbang": "XAUUSD",
-    "cot": "COT_GOLD"
+    "cot": "COT_GOLD",
+    "aliran": {
+     "seri": "GLD",
+     "tanda": 1
+    }
    },
    "WTI": {
     "beta": "WTI",
     "gerbang": "WTI",
-    "cot": "COT_CRUDE"
+    "cot": "COT_CRUDE",
+    "aliran": {
+     "seri": "WTI",
+     "tanda": 1
+    }
    },
    "SPX": {
     "beta": "SPX",
     "gerbang": "SPX",
-    "cot": "COT_SPX"
+    "cot": "COT_SPX",
+    "aliran": {
+     "seri": "SPY",
+     "tanda": 1
+    }
    },
    "USDJPY": {
     "beta": "USDJPY",
     "gerbang": "USDJPY",
-    "cot": "COT_JPY"
+    "cot": "COT_JPY",
+    "aliran": {
+     "seri": "DXY",
+     "tanda": 1
+    }
    },
    "EURUSD": {
     "beta": "EURUSD",
     "gerbang": "EURUSD",
-    "cot": "COT_EUR"
+    "cot": "COT_EUR",
+    "aliran": {
+     "seri": "DXY",
+     "tanda": -1
+    }
    }
   },
   "skor": {

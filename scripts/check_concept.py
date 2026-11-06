@@ -146,7 +146,7 @@ else:
     o = tcfg.get("otak", {})
     for b in ("kejutan", "kondisi", "fed", "faktor", "aset", "skor", "keyakinan", "aliran", "cot", "tautan"):
         if b not in o: V("OTAK", f"blok otak.{b} tidak ada di config/thresholds.json")
-    ids = set(o.get("aliran", {}).get("kelas", {}).values()) | {a.get("cot") for a in o.get("aset", {}).values()} \
+    ids = set(o.get("aliran", {}).get("kelas", {}).values()) | {a.get("cot") for a in o.get("aset", {}).values()} | {a.get("aliran", {}).get("seri") for a in o.get("aset", {}).values()} \
         | {x for t in o.get("tautan", {}).get("daftar", []) for x in (t["dari"], t["ke"])}
     for i in sorted(ids):
         if i not in BY_ID: V("OTAK", f"otak memakai seri {i} yang tidak ada di registry")

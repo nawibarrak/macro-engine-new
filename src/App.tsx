@@ -184,7 +184,7 @@ export const App: React.FC = () => {
 
             <span className="ping-indicator">
               <span className="ping-dot" />
-              LIVE · 14MS
+              {status?.generated ? `DATA ${Math.max(0, Math.round((Date.now() - Date.parse(status.generated)) / 60000))} MNT` : 'DATA –'}
             </span>
           </div>
 

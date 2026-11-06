@@ -19,4 +19,4 @@ Jumlah seri registry: 70
 - Jendela rilis rapat (5-10 menit setelah jam rilis) belum ada.
 
 ## Langkah berikutnya
-Jalankan workflow dengan skrip tahap 3, lalu kirim tangkapan layar kotak Fase pasar dan panel Otak makro. Periksa: distribusi fase di data/phase.json (bila Waspada > sekitar 35% hari, naikkan persentil 'naik' di config/thresholds.json), uji peristiwa (Covid, SVB, Tarif, Tenang), uji tautan, dan kewajaran skor per aset. Setelah itu tahap 4.
+Jalankan workflow dengan skrip tahap 3, lalu kirim tangkapan layar kotak Fase pasar dan panel Otak makro. Periksa: distribusi fase di data/phase.json (bila Waspada > sekitar 35% hari, naikkan persentil 'naik' di config/thresholds.json), uji peristiwa (Covid, SVB, Tarif, Tenang), uji tautan, dan kewajaran skor per aset. Run asli 6 Nov: semua langkah ok, 41 uji lolos, semua gerbang terbuka, fase Stres. Perbaikan 6 Nov (riwayat penuh, aliran per aset, header jujur) menunggu run berikutnya; setelah itu periksa uji peristiwa dan sebaran fase. Lalu tahap 4.

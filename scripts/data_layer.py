@@ -96,6 +96,7 @@ def age_days(date_str):
 def due(s, old, force):
     if force or not old: return True
     refs = [r for _, r in s["prov"]]
+    if old.get("hist_years") != LONG_YEARS.get(s["id"]): return True            # kebutuhan riwayat berubah -> ambil ulang sekali
     if old.get("ref") not in refs: return True                       # definisi seri berubah -> ambil ulang
     if bool(old.get("fallback")) != (old.get("ref") != s["prov"][0][1]) and old.get("prov") in dict(s["prov"]): return True   # urutan sumber utama berubah
     today = NOW().date().isoformat()
@@ -143,8 +144,13 @@ def process(s, force=False):
     d = dict(id=s["id"], label=s["label"], group=s["group"], freq=s["freq"], unit=s["unit"],
              prov=used[0], ref=used[1], fallback=(used[1] != s["prov"][0][1]), dropped=used[2],
              fetched=now, asof=got[-1][0], last=got[-1][1], state=state, note=note, err=errs or None,
-             points=got[-KEEP[s["freq"]]:])
+             hist_years=LONG_YEARS.get(s["id"]), points=got[-keep_n(s):])
     return d, "ok"
+
+def keep_n(s):
+    """Jumlah titik disimpan: seri riwayat panjang (persentil mesin fase) tidak boleh terpotong KEEP."""
+    y = LONG_YEARS.get(s["id"])
+    return KEEP[s["freq"]] if not y else int(y * (252 if s["freq"] == "harian" else 52) * 1.1)
 
 def status_row(s, d, act):
     maxage = FREQ[s["freq"]][0]

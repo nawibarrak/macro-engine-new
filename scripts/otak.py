@@ -107,7 +107,7 @@ def reaksi_fed(ks, S, c, P):
         conf = (P > 0) == (data > 0)
     out["gerak_2y_z"] = P
     out["terkonfirmasi"] = conf
-    out["catatan"] = ("stance netral: rantai tidak dijalankan" if out["stance"] == "netral" else
+    out["catatan"] = (("stance netral: rantai tidak dijalankan" + ("; harga pasar condong " + ("hawkish" if mkt > 0 else "dovish") + " sementara data belum searah" if mkt is not None and abs(mkt) >= c["ambang_selisih_pasar"] else "")) if out["stance"] == "netral" else
                       "gerak yield 2 tahun belum jelas" if conf is None else
                       "yield 2 tahun membenarkan data" if conf else "yield 2 tahun BERLAWANAN dengan data: rantai tidak terbukti, lihat skenario alternatif")
     return out
@@ -199,7 +199,8 @@ def main():
         # keyakinan (heuristik, bukan probabilitas)
         k_len = len(F) / len(FACT)
         k_fed = 0.5 if fed.get("terkonfirmasi") is None else 1.0 if fed["terkonfirmasi"] else 0.0
-        z = byz.get(a); k_al = 0.5 if z is None or arah == "netral" else 1.0 if (z > 0) == (arah == "naik") else 0.0
+        zz = byz.get(m["aliran"]["seri"]); z = None if zz is None else round(zz * m["aliran"]["tanda"], 2)
+        k_al = 0.5 if z is None or arah == "netral" else 1.0 if (z > 0) == (arah == "naik") else 0.0
         rel = [t for t in tl if a in t["aset"]]; k_tl = 0.5 if not rel else sum(t["lulus"] for t in rel) / len(rel)
         w = ky["bobot"]; kon = w["kelengkapan"] * k_len + w["kesepakatan_fed"] * k_fed + w["aliran_searah"] * k_al + w["bukti_tautan"] * k_tl
         if bsrc.startswith("prior"): kon *= ky["beta_prior"]

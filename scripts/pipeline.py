@@ -24,7 +24,8 @@ def main():
         if needs_key and not os.environ.get("FRED_API_KEY"):
             res.append(dict(step=name, status="dilewati", detail="FRED_API_KEY tidak diset", sec=0)); continue
         t = time.time()
-        p = subprocess.run([PY, os.path.join(ROOT, script)], cwd=ROOT, capture_output=True, text=True, timeout=900)
+        p = subprocess.run([PY, os.path.join(ROOT, script)], cwd=ROOT, capture_output=True, text=True, timeout=900,
+                           env={**os.environ, "PYTHONWARNINGS": "ignore"})
         out = (p.stdout + p.stderr).strip()
         print(f"::group::{name}\n{out[-3000:]}\n::endgroup::")
         res.append(dict(step=name, status="ok" if p.returncode == 0 else "gagal", detail=out.splitlines()[-1][:200] if out else "", sec=round(time.time() - t, 1)))
