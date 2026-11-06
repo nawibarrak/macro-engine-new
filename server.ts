@@ -1,83 +1,102 @@
-import cors from 'cors';
 import express from 'express';
-import rateLimit from 'express-rate-limit';
+import cors from 'cors';
 import { GoogleGenAI } from '@google/genai';
+import { createServer as createViteServer } from 'vite';
 
 const app = express();
-const port = Number(process.env.PORT) || 3000;
-const apiKey = process.env.GEMINI_API_KEY;
-const model = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
-  .split(',')
-  .map((origin) => origin.trim())
-  .filter(Boolean);
+const PORT = 3000;
 
+app.use(cors());
+app.use(express.json());
+
+// Initialize GoogleGenAI
+const apiKey = process.env.GEMINI_API_KEY;
 const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
-app.disable('x-powered-by');
-
-app.use(cors({
-  origin(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-    return callback(new Error('Origin is not allowed'));
-  },
-}));
-
-app.use(express.json({ limit: '8kb' }));
-
-app.use('/api/', rateLimit({
-  windowMs: 60_000,
-  limit: 10,
-  standardHeaders: 'draft-8',
-  legacyHeaders: false,
-  message: { error: 'Terlalu banyak permintaan. Coba lagi sebentar.' },
-}));
-
-app.get('/healthz', (_req, res) => res.json({ ok: true }));
-
+// API Route: Real-time Macro Intelligence with Google Search Grounding
 app.post('/api/macro-search', async (req, res) => {
-  const query = req.body?.query;
-  if (typeof query !== 'string' || !query.trim()) {
-    res.status(400).json({ error: 'Query wajib berupa teks.' });
-    return;
-  }
-
-  if (query.length > 1000) {
-    res.status(413).json({ error: 'Query terlalu panjang (maksimum 1000 karakter).' });
-    return;
-  }
-
-  if (!ai) {
-    res.status(503).json({ error: 'Layanan pencarian belum dikonfigurasi.' });
-    return;
-  }
-
   try {
-    const cleanQuery = query.trim();
+    const { query } = req.body;
+    if (!query || typeof query !== 'string') {
+      res.status(400).json({ error: 'Query parameter is required' });
+      return;
+    }
+
+    if (!ai) {
+      res.status(503).json({
+        error: 'GEMINI_API_KEY is not configured on the server. Please check the Secrets panel in Settings.',
+      });
+      return;
+    }
+
     const response = await ai.models.generateContent({
-      model,
-      contents: `You are a macroeconomic research analyst. Analyze the latest updates using Google Search data for: "${cleanQuery}". Structure the response with (1) latest official data and dates, (2) central-bank stance and market consensus, (3) cross-asset implications, and (4) a concise quantitative takeaway. Distinguish verified facts from interpretation and avoid presenting this as investment advice.`,
-      config: { tools: [{ googleSearch: {} }] },
+      model: 'gemini-3.8-flash',
+      contents: `You are an institutional macro research desk analyst at a quantitative hedge fund.
+The user is requesting live, real-time macroeconomic intelligence and verified market context for: "${query}".
+
+Analyze the latest verified updates using Google Search data. Structure your response professionally:
+1. Executive Snapshot & Latest Official Data (actual numbers, dates, revisions)
+2. Central Bank Stance / Market Consensus Impact
+3. Cross-Asset Implications (Equities, US Yields, DXY, Commodities, Gold)
+4. Quantitative Desk Takeaway (Bullish / Neutral / Bearish bias)
+
+Keep the analysis authoritative, dense, precise, and free of fluff.`,
+      config: {
+        tools: [{ googleSearch: {} }],
+      },
     });
 
     const candidate = response.candidates?.[0];
-    const grounding = candidate?.groundingMetadata;
+    const groundingMetadata = candidate?.groundingMetadata;
 
     res.json({
-      query: cleanQuery,
+      query,
       analysis: response.text || 'Tidak ada analisis yang dihasilkan.',
-      searchQueries: grounding?.webSearchQueries || [],
-      sources: (grounding?.groundingChunks || [])
-        .map((chunk) => ({ title: chunk.web?.title || 'Web Source', uri: chunk.web?.uri || '' }))
-        .filter((source) => source.uri),
+      searchQueries: groundingMetadata?.webSearchQueries || [],
+      sources: groundingMetadata?.groundingChunks?.map((chunk: any) => ({
+        title: chunk.web?.title || 'Web Source',
+        uri: chunk.web?.uri || '',
+      })).filter((s: any) => s.uri) || [],
       timestamp: new Date().toISOString(),
     });
-  } catch (error) {
-    console.error('Gemini macro-search failed:', error);
-    res.status(502).json({ error: 'Pencarian makro gagal sementara. Coba lagi nanti.' });
+  } catch (error: any) {
+    console.error('Error generating macro search intel:', error);
+    const errStr = error?.message || String(error);
+    let friendlyMessage = 'Gagal memuat data pencarian makro terkini.';
+    if (errStr.includes('API_KEY_INVALID') || errStr.includes('API key not valid') || errStr.includes('400')) {
+      friendlyMessage = 'Kunci API Gemini tidak valid atau belum diatur. Silakan periksa atau atur GEMINI_API_KEY di panel Settings > Secrets.';
+    } else if (errStr.includes('PERMISSION_DENIED') || errStr.includes('403')) {
+      friendlyMessage = 'Akses ditolak (403). Silakan periksa izin API key Anda di panel Settings > Secrets.';
+    } else if (errStr.includes('RESOURCE_EXHAUSTED') || errStr.includes('429')) {
+      friendlyMessage = 'Kuota API telah tercapai (429). Silakan coba beberapa saat lagi atau periksa kuota akun di Google AI Studio.';
+    } else {
+      friendlyMessage = errStr;
+    }
+
+    res.status(500).json({
+      error: friendlyMessage,
+    });
   }
 });
 
-app.listen(port, '0.0.0.0', () => {
-  console.log(`Macro search API listening on port ${port}`);
-});
+// Mount Vite middleware for dev or serve static files in production
+async function startServer() {
+  if (process.env.NODE_ENV !== 'production') {
+    const vite = await createViteServer({
+      server: { middlewareMode: true },
+      appType: 'spa',
+    });
+    app.use(vite.middlewares);
+  } else {
+    app.use(express.static('dist'));
+    app.get('*', (_req, res) => {
+      res.sendFile('dist/index.html', { root: '.' });
+    });
+  }
+
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Macro Engine Desk Server running at http://0.0.0.0:${PORT}`);
+  });
+}
+
+startServer();

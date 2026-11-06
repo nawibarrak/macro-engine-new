@@ -1,13 +1,13 @@
 # Progres (diperbarui tiap tahap; check_concept memeriksa angka seri)
 
-Jumlah seri registry: 68
+Jumlah seri registry: 70
 
 | Tahap | Status | Bukti | Belum terbukti |
 |---|---|---|---|
 | 1 Lapisan data v2 | Selesai, berjalan di GitHub | status.json run asli: 48 dari 50 seri ok (sebelum 17 seri baru) | 17 seri baru (barometer, COT, DefiLlama) belum diuji di data asli |
 | 2 Beranda dan grafik | Dibangun, diuji dengan data uji | Render desktop/ponsel/gelap tanpa error JS | Belum dilihat dengan data asli di situs |
 | 2b Audit data dan penjaga konsep | Selesai, berjalan di GitHub (2026-10-07): 68 seri segar, 39 uji lolos, 0 gagal, 1 peringatan, gerbang terbuka, sesuai konsep | Run asli; WTI diverifikasi manual terhadap Finviz/TradingView dan lewat konsistensi dengan Brent | Gerbang per aset (config/gates.json, scripts/gates.py) dan audit US02Y ke Treasury.gov serta batas target FED dibangun 2026-10-07, belum jalan di GitHub. Klaim pengangguran ke DOL ditunda (format berkas belum terlihat). XAUUSD, WTI, HYOAS belum punya sumber kedua |
-| 3 Otak otomatis | Belum dimulai | | |
+| 3 Otak otomatis | Dibangun (2026-11-01): scripts/phase.py (fase pasar) dan scripts/otak.py (kejutan rilis, kondisi, reaksi Fed, faktor, aliran modal, COT, skor per aset); diuji dengan data buatan; tampil di beranda | Tes data buatan, check_concept bersih | Semua ambang config/thresholds.json berstatus KANDIDAT, belum dijalankan pada data asli. Konsensus rilis masih proksi. Bobot kejutan, pengali fase, dan beta prior belum dikalibrasi |
 | 4 Probabilitas harian | Belum dimulai | | |
 | 5 Keputusan dan jurnal | Belum dimulai | | |
 | 6 Teknikal entry | Belum dimulai | | |
@@ -19,4 +19,4 @@ Jumlah seri registry: 68
 - Jendela rilis rapat (5-10 menit setelah jam rilis) belum ada.
 
 ## Langkah berikutnya
-Jalankan workflow dengan skrip terbaru dan baca hasil audit Treasury.gov serta gerbang per aset; lalu tahap 3 dimulai dengan menyetujui daftar ambang di config/thresholds.json.
+Jalankan workflow dengan skrip tahap 3, lalu kirim tangkapan layar kotak Fase pasar dan panel Otak makro. Periksa: distribusi fase di data/phase.json (bila Waspada > sekitar 35% hari, naikkan persentil 'naik' di config/thresholds.json), uji peristiwa (Covid, SVB, Tarif, Tenang), uji tautan, dan kewajaran skor per aset. Setelah itu tahap 4.

@@ -10,6 +10,7 @@ import {
   ConsensusItem,
 } from '../types/macro';
 import { InteractiveChart } from './InteractiveChart';
+import { OtakPanel } from './OtakPanel';
 
 interface DeskViewProps {
   bundle: BundleData;
@@ -20,6 +21,8 @@ interface DeskViewProps {
   conceptCheck: ConceptCheckData;
   feed: FeedData | null;
   consensus: ConsensusItem[];
+  phase: any | null;
+  otak: any | null;
   onNavigateToLanjutan: () => void;
 }
 
@@ -290,6 +293,8 @@ export const DeskView: React.FC<DeskViewProps> = ({
   conceptCheck,
   feed,
   consensus,
+  phase,
+  otak,
   onNavigateToLanjutan,
 }) => {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
@@ -1383,6 +1388,8 @@ export const DeskView: React.FC<DeskViewProps> = ({
       </section>
 
       {/* 9. Sinyal Fundamental Note */}
+      <OtakPanel phase={phase} otak={otak} />
+
       <section className="p" id="sinyal">
         <div className="ph">
           <h2>Sinyal fundamental</h2>
