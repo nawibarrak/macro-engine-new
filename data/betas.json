@@ -1,5 +1,5 @@
 {
- "generated": "2026-11-06T18:49:43Z",
+ "generated": "2026-11-14T00:09:10Z",
  "factors": [
   "G",
   "I",
@@ -25,17 +25,17 @@
    "est": [
     0,
     0.02,
-    0.03,
+    0.02,
     0.1,
     0.08,
     -0.24,
     -0.41
    ],
    "lam": 100,
-   "n_weeks": 983,
+   "n_weeks": 984,
    "n_oos": 442,
-   "r2_est": 0.2298,
-   "r2_prior": -0.253,
+   "r2_est": 0.2261,
+   "r2_prior": -0.254,
    "reason": "est mengalahkan prior dan R2 uji>0"
   },
   "WTI": {
@@ -59,10 +59,10 @@
     -0.15
    ],
    "lam": 300,
-   "n_weeks": 983,
+   "n_weeks": 984,
    "n_oos": 442,
-   "r2_est": 0.1421,
-   "r2_prior": 0.0513,
+   "r2_est": 0.1481,
+   "r2_prior": 0.0599,
    "reason": "est mengalahkan prior dan R2 uji>0"
   },
   "CU": {
@@ -78,7 +78,7 @@
    ],
    "est": [
     0.7,
-    0.2,
+    0.21,
     -0.02,
     -0.01,
     -0.29,
@@ -86,10 +86,10 @@
     -0.32
    ],
    "lam": 100,
-   "n_weeks": 983,
+   "n_weeks": 984,
    "n_oos": 442,
-   "r2_est": 0.206,
-   "r2_prior": 0.0504,
+   "r2_est": 0.2077,
+   "r2_prior": 0.0527,
    "reason": "est mengalahkan prior dan R2 uji>0"
   },
   "SPX": {
@@ -106,17 +106,17 @@
    "est": [
     0.4,
     0.11,
-    0.07,
+    0.06,
     0.02,
-    -0.69,
+    -0.7,
     -0.07,
     -0.18
    ],
    "lam": 100,
-   "n_weeks": 983,
+   "n_weeks": 984,
    "n_oos": 442,
-   "r2_est": 0.5751,
-   "r2_prior": 0.1185,
+   "r2_est": 0.5754,
+   "r2_prior": 0.1221,
    "reason": "est mengalahkan prior dan R2 uji>0"
   },
   "NDX": {
@@ -140,10 +140,10 @@
     -0.13
    ],
    "lam": 100,
-   "n_weeks": 983,
+   "n_weeks": 984,
    "n_oos": 442,
-   "r2_est": 0.4619,
-   "r2_prior": -0.2228,
+   "r2_est": 0.4643,
+   "r2_prior": -0.2147,
    "reason": "est mengalahkan prior dan R2 uji>0"
   },
   "BTC": {
@@ -167,10 +167,10 @@
     -0.1
    ],
    "lam": 30,
-   "n_weeks": 633,
-   "n_oos": 285,
-   "r2_est": 0.0534,
-   "r2_prior": -1.7766,
+   "n_weeks": 634,
+   "n_oos": 286,
+   "r2_est": 0.0513,
+   "r2_prior": -1.7674,
    "reason": "est mengalahkan prior dan R2 uji>0"
   },
   "EEM": {
@@ -194,10 +194,10 @@
     -0.33
    ],
    "lam": 30,
-   "n_weeks": 983,
+   "n_weeks": 984,
    "n_oos": 442,
-   "r2_est": 0.4083,
-   "r2_prior": -0.1777,
+   "r2_est": 0.4081,
+   "r2_prior": -0.1774,
    "reason": "est mengalahkan prior dan R2 uji>0"
   },
   "IHSG": {
@@ -215,16 +215,16 @@
     0.3,
     0.13,
     0.02,
-    -0.01,
-    -0.29,
+    -0.0,
+    -0.3,
     -0.05,
     -0.19
    ],
    "lam": 30,
-   "n_weeks": 961,
+   "n_weeks": 962,
    "n_oos": 433,
-   "r2_est": 0.1561,
-   "r2_prior": -0.315,
+   "r2_est": 0.1566,
+   "r2_prior": -0.3141,
    "reason": "est mengalahkan prior dan R2 uji>0"
   },
   "EURUSD": {
@@ -241,17 +241,17 @@
    "est": [
     0,
     -0.04,
-    0.07,
+    0.06,
     -0.0,
-    -0.01,
+    -0.0,
     -0.0,
     -0.82
    ],
    "lam": 30,
-   "n_weeks": 980,
-   "n_oos": 441,
-   "r2_est": 0.6357,
-   "r2_prior": 0.5278,
+   "n_weeks": 981,
+   "n_oos": 442,
+   "r2_est": 0.6348,
+   "r2_prior": 0.5258,
    "reason": "est mengalahkan prior dan R2 uji>0"
   },
   "GBPUSD": {
@@ -268,17 +268,17 @@
    "est": [
     0.1,
     0.04,
-    0.03,
-    -0.0,
+    0.02,
+    -0.01,
     -0.11,
     0.0,
     -0.63
    ],
    "lam": 300,
-   "n_weeks": 983,
+   "n_weeks": 984,
    "n_oos": 442,
-   "r2_est": 0.4392,
-   "r2_prior": 0.3846,
+   "r2_est": 0.4382,
+   "r2_prior": 0.3827,
    "reason": "est mengalahkan prior dan R2 uji>0"
   },
   "USDJPY": {
@@ -302,10 +302,10 @@
     0.33
    ],
    "lam": 30,
-   "n_weeks": 980,
-   "n_oos": 441,
-   "r2_est": 0.2389,
-   "r2_prior": -0.045,
+   "n_weeks": 981,
+   "n_oos": 442,
+   "r2_est": 0.2421,
+   "r2_prior": -0.0444,
    "reason": "est mengalahkan prior dan R2 uji>0"
   },
   "AUDUSD": {
@@ -321,18 +321,18 @@
    ],
    "est": [
     0.4,
-    0.17,
+    0.18,
     0.02,
-    0.0,
+    -0.0,
     -0.28,
     -0.07,
     -0.46
    ],
    "lam": 30,
-   "n_weeks": 983,
+   "n_weeks": 984,
    "n_oos": 442,
-   "r2_est": 0.3498,
-   "r2_prior": 0.2152,
+   "r2_est": 0.352,
+   "r2_prior": 0.2186,
    "reason": "est mengalahkan prior dan R2 uji>0"
   },
   "USDIDR": {
@@ -356,10 +356,10 @@
     0.22
    ],
    "lam": 100,
-   "n_weeks": 979,
+   "n_weeks": 980,
    "n_oos": 441,
-   "r2_est": 0.1554,
-   "r2_prior": -0.9859,
+   "r2_est": 0.147,
+   "r2_prior": -0.9918,
    "reason": "est mengalahkan prior dan R2 uji>0"
   }
  }
